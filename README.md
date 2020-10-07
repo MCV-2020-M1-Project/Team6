@@ -1,2 +1,2 @@
 # Team6
-Team 7's repository 
+Team 6's repository 
