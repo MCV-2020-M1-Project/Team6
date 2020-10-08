@@ -2,8 +2,8 @@ import cv2 as cv
 import numpy as np
 
 def mask_evaluation(annotation, result):
-    #annotation=cv.imread("mask-dilate.png",0)
-    #result=cv.imread(r"C:\Users\adama\OneDrive\Dokumenty\Master of Computer Vision\M1\week 1\qsd2_w1\00004.png",0)
+    #result=cv.imread("mask-dilate.png",0)
+    #annotation=cv.imread(r"C:\Users\adama\OneDrive\Dokumenty\Master of Computer Vision\M1\week 1\qsd2_w1\00004.png",0)
 
     result_neg=cv.bitwise_not(result)
     annotation_neg=cv.bitwise_not(annotation)
@@ -36,3 +36,4 @@ def mask_evaluation(annotation, result):
     print("F1 measure=",f1_measure)
 
     return (precision,recall,f1_measure)
+
