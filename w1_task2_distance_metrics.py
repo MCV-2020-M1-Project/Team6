@@ -112,14 +112,29 @@ def display_comparison(a, b):
     return
 
 
+def get_all_measures(a, b):
+    '''
+    Return a dictionary with all available measures. Keys are:
+    * 'eucl': Euclidean distance
+    * 'l1': L1 distance
+    * 'x2': X² distance
+    * 'h_inter': Histogram intersection (similarity)
+    * 'hell_ker': Hellinger kernel (similarity)
+    '''
+    measures = {'eucl': get_euclidean_distance(a, b),
+                'l1': get_l1_distance(a, b),
+                'x2': get_x2_distance(a, b),
+                'h_inter': get_hist_intersection(a, b),
+                'hell_ker': get_hellinger_kernel(a, b)
+                }
+    return measures
+
 # at least it runs?
 a = np.array([rnd.uniform(0, 100) for i in range(255)])
 b = np.array([rnd.uniform(0, 100) for i in range(255)])
 
 display_comparison(a, b)
+d = get_all_measures(a, b)
 
-print('Euclidean:', get_euclidean_distance(a, b))
-print('L1:', get_l1_distance(a, b))
-print('X2:', get_x2_distance(a, b))
-print('Histogram intersection:', get_hist_intersection(a, b))
-print('Hellinger kernel:', get_hellinger_kernel(a, b))
+for k, v in d.items():
+    print(k + ':', '{:.2f}'.format(v))
