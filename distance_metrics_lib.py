@@ -14,7 +14,6 @@ Metrics implemented:
 import random as rnd
 import numpy as np
 import cv2
-import matplotlib.pyplot as plt
 
 
 def get_euclidean_distance(descriptor_a, descriptor_b):
@@ -112,7 +111,7 @@ def display_comparison(a, b):
     return
 
 
-def get_all_measures(a, b):
+def get_all_measures(a, b, display=False):
     '''
     Return a dictionary with all available measures. Keys are:
     * 'eucl': Euclidean distance
@@ -127,14 +126,22 @@ def get_all_measures(a, b):
                 'h_inter': get_hist_intersection(a, b),
                 'hell_ker': get_hellinger_kernel(a, b)
                 }
+
+    if display:
+        for k, v in measures.items():
+            print(k + ':', '{:.2f}'.format(v))
+
     return measures
 
-# at least it runs?
-a = np.array([rnd.uniform(0, 100) for i in range(255)])
-b = np.array([rnd.uniform(0, 100) for i in range(255)])
 
-display_comparison(a, b)
-d = get_all_measures(a, b)
+def test():
+    # at least it runs?
+    a = np.array([rnd.uniform(0, 100) for i in range(255)])
+    b = np.array([rnd.uniform(0, 100) for i in range(255)])
 
-for k, v in d.items():
-    print(k + ':', '{:.2f}'.format(v))
+    display_comparison(a, b)
+    d = get_all_measures(a, b, True)
+
+
+if __name__ == '__main__':
+    test()
