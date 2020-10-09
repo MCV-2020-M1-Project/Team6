@@ -1,11 +1,10 @@
 import pickle as pkl
+import argparse
 import cv2
 import descriptor_lib as desc
 import distance_metrics_lib as dists
 import sys
 
-DESCRIPTOR = 'hsv_concat_hist' #TODO set as optional cmd line arguments
-MEASURE = 'corr'
 
 def get_histogram_top_k_similar(query_descriptor, db_descriptor_list, k=3):
       
@@ -43,8 +42,14 @@ def main(img_name):
 
 if __name__ == "__main__":
 
-    if len(sys.argv) >= 2:
-        img_name = sys.argv[1]
-        main(img_name)
-    else:
-        print("A query img is required.")
+    parser = argparse.ArgumentParser()
+    parser.add_argument('-i', required=True, type=str, help='Image')
+    parser.add_argument('-d', required=False, default='bgr_concat_hist', type=str)
+    parser.add_argument('-m', required=False, default='corr', type=str)
+    args = parser.parse_args()
+    
+
+    DESCRIPTOR = args.d
+    MEASURE = args.m
+
+    main(args.i)
