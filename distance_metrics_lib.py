@@ -152,7 +152,7 @@ def test():
     # b = np.array([rnd.uniform(0, 100) for i in range(255)], dtype=np.uint8)
 
     # with images
-    im1 = cv2.imread('../datasets/BBDD/bbdd_00120.jpg', 0)
+    im1 = cv2.imread('../datasets/BBDD/bbdd_00201.jpg', 0)
     im2 = cv2.imread('../datasets/qsd1_w1/00000.jpg', 0)
 
     a = cv2.calcHist([im1], [0], None, [256], (0, 256))
