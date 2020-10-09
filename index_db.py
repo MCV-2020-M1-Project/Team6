@@ -10,5 +10,5 @@ for i in range(287):
     descript_dic_list.append(desc.get_descriptors(img)) #get a dic with the descriptors for the img
 
 #Save descriptors
-with open('bd_descriptors.pkl', 'wb') as dbfile:
+with open('pkl_data/bd_descriptors.pkl', 'wb') as dbfile:
     pkl.dump(descript_dic_list, dbfile)

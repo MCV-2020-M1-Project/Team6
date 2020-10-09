@@ -24,7 +24,7 @@ def main(img_name):
 
     #Read descriptors of the museum db from .pkl
     db_descript_list = []
-    with open('bd_descriptors.pkl', 'rb') as dbfile:
+    with open('pkl_data/bd_descriptors.pkl', 'rb') as dbfile:
         db_descript_list = pkl.load(dbfile)
 
     #Get a dic with the descriptors of the query image
