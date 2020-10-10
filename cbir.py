@@ -32,27 +32,31 @@ def main(img_name):
     #Get a dic with the descriptors of the query image
     qimg_path = ['..','datasets', 'qsd1_w1', img_name + '.jpg']
     query_img = cv2.imread(os.path.join(*qimg_path), cv2.IMREAD_COLOR)
+
+    if BACKGROUND:
+        print('Placehold for background_removal(query_img) call')
+        pass # Call background removal function
+
     query_descript_dic = desc.get_descriptors(query_img)
 
     ##task 3##
     result = get_histogram_top_k_similar(query_descript_dic[DESCRIPTOR], db_descript_list)
-
     print('result:', result)
 
     return
 
 
-
 if __name__ == "__main__":
 
     parser = argparse.ArgumentParser()
-    parser.add_argument('-i', required=True, type=str, help='Image')
-    parser.add_argument('-d', required=False, default='bgr_concat_hist', type=str)
-    parser.add_argument('-m', required=False, default='corr', type=str)
+    parser.add_argument('-i', '--image', required=True, type=str, help='Image')
+    parser.add_argument('-d', '--descriptor', required=False, default='bgr_concat_hist', type=str)
+    parser.add_argument('-m', '--measure', required=False, default='corr', type=str)
+    parser.add_argument('-b', '--background', required=False, default=False, action='store_true')
     args = parser.parse_args()
-    
 
-    DESCRIPTOR = args.d
-    MEASURE = args.m
+    BACKGROUND = args.background
+    DESCRIPTOR = args.descriptor
+    MEASURE = args.measure
 
-    main(args.i)
+    main(args.image)
