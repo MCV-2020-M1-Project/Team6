@@ -5,7 +5,7 @@ import glob
 import pandas as pd
 import matplotlib.pyplot as plt
 import seaborn as sns
-
+import os
 
 def show_xyz(im, colorspace):
     """
@@ -63,6 +63,9 @@ def generate_masks(x_range, y_range, z_range, colorspace):
 
         mask0 = cv.bitwise_not(mask0)
         # cv.imshow('mask',mask0)
+
+        if not os.path.exists('../datasets/masks_extracted/'):
+            os.makedirs('../datasets/masks_extracted/')
 
         cv.imwrite('../datasets/masks_extracted/' + obraz[-8:], mask0)
 
