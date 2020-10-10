@@ -36,7 +36,10 @@ def get_x2_distance(descriptor_a, descriptor_b):
     Gets descriptors as numpy arrays and returns X2 distance
     '''
     dif = descriptor_a - descriptor_b
-    return np.sum(dif*dif/(descriptor_a+descriptor_b))
+
+    num = dif*dif
+    den = descriptor_a+descriptor_b
+    return np.sum(np.divide(num, den, out=np.zeros_like(num), where=den != 0))
 
 
 def get_hist_intersection(descriptor_a, descriptor_b):
@@ -152,8 +155,8 @@ def test():
     # b = np.array([rnd.uniform(0, 100) for i in range(255)], dtype=np.uint8)
 
     # with images
-    im1 = cv2.imread('../datasets/BBDD/bbdd_00201.jpg', 0)
-    im2 = cv2.imread('../datasets/qsd1_w1/00000.jpg', 0)
+    im1 = cv2.imread('../datasets/BBDD/bbdd_00170.jpg', 0)
+    im2 = cv2.imread('../datasets/qsd1_w1/00001.jpg', 0)
 
     a = cv2.calcHist([im1], [0], None, [256], (0, 256))
     b = cv2.calcHist([im2], [0], None, [256], (0, 256))
