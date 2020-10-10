@@ -12,7 +12,7 @@ def get_histogram_top_k_similar(query_descriptor, db_descriptor_list, k=3):
     idx = 0
     for db_point in db_descriptor_list:
         distances = dists.get_all_measures(query_descriptor, db_point[DESCRIPTOR])
-        distances_dict[idx] = abs(distances[MEASURE])
+        distances_dict[idx] = distances[MEASURE]
         idx += 1
 
     result = [key for key in sorted(distances_dict, key=distances_dict.get, reverse=True)[:k]]
