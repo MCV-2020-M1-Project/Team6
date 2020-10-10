@@ -4,6 +4,7 @@ import cv2
 import descriptor_lib as desc
 import distance_metrics_lib as dists
 import sys
+import os
 
 
 def get_histogram_top_k_similar(query_descriptor, db_descriptor_list, k=3):
@@ -24,11 +25,13 @@ def main(img_name):
 
     #Read descriptors of the museum db from .pkl
     db_descript_list = []
-    with open('pkl_data/bd_descriptors.pkl', 'rb') as dbfile:
+    pkl_path = ['pkl_data', 'bd_descriptors.pkl']
+    with open(os.path.join(*pkl_path), 'rb') as dbfile:
         db_descript_list = pkl.load(dbfile)
 
     #Get a dic with the descriptors of the query image
-    query_img = cv2.imread('../datasets/qsd1_w1/'+ img_name + '.jpg', cv2.IMREAD_COLOR)
+    qimg_path = ['..','datasets', 'qsd1_w1', img_name + '.jpg']
+    query_img = cv2.imread(os.path.join(*qimg_path), cv2.IMREAD_COLOR)
     query_descript_dic = desc.get_descriptors(query_img)
 
     ##task 3##
