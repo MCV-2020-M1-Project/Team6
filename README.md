@@ -9,7 +9,7 @@ Folder structure for running:
 │   └── qsd2_w1
 └── Team6
     ├── evaluation
-    ├── pkl_data
+        ├── pkl_data
     
 run code:
 
@@ -32,3 +32,14 @@ cbir.py -i 00001 -d 'bgr_concat_hist' -m 'corr'
 example result:
 [120, 201, 304]
 
+3. to get a .csv with map@k run the retrieval_evaluation.py
+
+example run:
+
+python retrieval_evaluation.py -q qsd1_w1 -d 'bgr_concat_hist' -m 'corr' -k 5
+
+args:
+-q {name of the query set - it has to be inside datasets directory}
+-d {descriptor name from descriptor_lib.py} 
+-m {metric from distance_metrics_lib.py}
+-k {number of most similar paintings to find}
