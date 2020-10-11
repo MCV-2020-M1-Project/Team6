@@ -1,5 +1,7 @@
 .vscode/
 __pycache__/
+__pycache__/
 
-#Ignore pickles
+#Ignore pickles and csv
 *.pkl
+*.csv
