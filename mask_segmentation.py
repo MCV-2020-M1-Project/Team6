@@ -185,14 +185,14 @@ def generate_report():
     all_mean_measures=[]
 
     for i in range(0,255):
-        input_measures_data = generate_masks([0,255],[0,255],[i,255],'hsv')
+        input_measures_data = generate_masks([0,255],[i,255],[0,255],'bgr')
         df = pd.DataFrame(np.array(input_measures_data), columns=['image', 'precision', 'recall', 'f1'])
 
         mean_measures = [i, df['precision'].mean(),df['recall'].mean(), df['f1'].mean()]
         all_mean_measures.append((mean_measures))
         print(i)
 
-    df_all = pd.DataFrame(np.array(all_mean_measures), columns=['value value', 'precision', 'recall', 'f1'])
-    df_all.to_excel("../output_measures_hsv_v.xlsx")
+    df_all = pd.DataFrame(np.array(all_mean_measures), columns=['green value', 'precision', 'recall', 'f1'])
+    df_all.to_excel("../output_measures_bgr_g_notbitwisenot.xlsx")
 
 generate_report()
