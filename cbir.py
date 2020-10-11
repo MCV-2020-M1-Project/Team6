@@ -6,13 +6,13 @@ import distance_metrics_lib as dists
 import sys
 
 
-def get_histogram_top_k_similar(query_descriptor, db_descriptor_list, k=3):
+def get_histogram_top_k_similar(query_descriptor, db_descriptor_list, descriptor, measure, k=3):
       
     distances_dict = {}
     idx = 0
     for db_point in db_descriptor_list:
-        distances = dists.get_all_measures(query_descriptor, db_point[DESCRIPTOR])
-        distances_dict[idx] = abs(distances[MEASURE])
+        distances = dists.get_all_measures(query_descriptor, db_point[descriptor])
+        distances_dict[idx] = abs(distances[measure])
         idx += 1
 
     result = [key for key in sorted(distances_dict, key=distances_dict.get, reverse=True)[:k]]
@@ -20,7 +20,7 @@ def get_histogram_top_k_similar(query_descriptor, db_descriptor_list, k=3):
     return result
 
 
-def main(img_name):
+def main(img_name, descriptor, measure, k):
 
     #Read descriptors of the museum db from .pkl
     db_descript_list = []
@@ -32,7 +32,8 @@ def main(img_name):
     query_descript_dic = desc.get_descriptors(query_img)
 
     ##task 3##
-    result = get_histogram_top_k_similar(query_descript_dic[DESCRIPTOR], db_descript_list)
+    result = get_histogram_top_k_similar(query_descript_dic[descriptor], db_descript_list, \
+        descriptor, measure, k)
 
     print('result:', result)
 
@@ -46,10 +47,7 @@ if __name__ == "__main__":
     parser.add_argument('-i', required=True, type=str, help='Image')
     parser.add_argument('-d', required=False, default='bgr_concat_hist', type=str)
     parser.add_argument('-m', required=False, default='corr', type=str)
+    parser.add_argument('-k', required=False, default='1', type=int)
     args = parser.parse_args()
-    
 
-    DESCRIPTOR = args.d
-    MEASURE = args.m
-
-    main(args.i)
+    main(args.i, args.d, args.m, args.k)
