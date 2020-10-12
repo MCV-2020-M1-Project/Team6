@@ -13,7 +13,7 @@ def calculate_mean_all(mapk_values):
     mean_of_mapk=sum(mapk_values)/len(mapk_values)
     return mean_of_mapk
 
-def main(queryset_name, descriptor, measure, k):
+def main(queryset_name, descriptor, measure, k, similarity):
 
     #Read descriptors of the museum db from .pkl
     path = ['pkl_data','bd_descriptors.pkl'] #for making the path system independent
@@ -31,13 +31,16 @@ def main(queryset_name, descriptor, measure, k):
     for i in range(qs_number):
         path = ['..','datasets', queryset_name, '{:05d}'.format(i)+'.jpg']
         img = cv2.imread(os.path.join(*path), cv2.IMREAD_COLOR)
+        if img is None:
+            print('Error reading image', os.path.join(*path))
+            quit()
         qs_descript_list.append(desc.get_descriptors(img)) #get a dic with the descriptors for the img
 
     predicted = [] #order predicted list of images for the method used on particular image
     #Get the results for every image in the query dataset
     for query_descript_dic in qs_descript_list:
         predicted.append(cbir.get_histogram_top_k_similar( \
-            query_descript_dic[descriptor], db_descript_list, descriptor, measure, k))
+            query_descript_dic[descriptor], db_descript_list, descriptor, measure, similarity, k))
 
     #Read grandtruth from .pkl
     actual = [] #just a list of all images from the query folder - not ordered
@@ -69,6 +72,8 @@ if __name__ == "__main__":
     parser.add_argument('-d', required=False, default='bgr_concat_hist', type=str)
     parser.add_argument('-m', required=False, default='corr', type=str)
     parser.add_argument('-k', required=False, default='5', type=int)
+    parser.add_argument('-s', '--similarity', required=False, default=False, action='store_true')
+
     args = parser.parse_args()
 
-    main(args.q, args.d, args.m, args.k)
+    main(args.q, args.d, args.m, args.k, args.similarity)
