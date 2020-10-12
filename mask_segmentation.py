@@ -6,6 +6,7 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import seaborn as sns
 import os
+import argparse
 
 
 def show_xyz(im, colorspace):
@@ -37,7 +38,7 @@ def show_xyz(im, colorspace):
     cv.destroyAllWindows()
 
 
-def generate_masks(x_range, y_range, z_range, colorspace):
+def generate_masks(x_range, y_range, z_range, colorspace, generate_images_of_masks):
     """
     x = [bottom,top]
     y = [bottom,top]
@@ -67,13 +68,14 @@ def generate_masks(x_range, y_range, z_range, colorspace):
         upper = np.array([x_range[1], y_range[1], z_range[1]])
         mask0 = cv.inRange(im, lower, upper)
 
-        mask0 = cv.bitwise_not(mask0)
+        # mask0 = cv.bitwise_not(mask0)
         # cv.imshow('mask',mask0)
 
         if not os.path.exists('../datasets/masks_extracted/'):
             os.makedirs('../datasets/masks_extracted/')
 
-        #cv.imwrite('../datasets/masks_extracted/' + obraz[-9:], mask0)
+        if generate_images_of_masks:
+            cv.imwrite('../datasets/masks_extracted/' + obraz[-9:], mask0)
 
         p, r, f = mask_evaluation.mask_evaluation(im_annotation, mask0)
 
@@ -150,22 +152,43 @@ def equalize_histogram(im):
     return dst
 
 
-# img = cv.imread('../datasets/qsd2_w1/00004.jpg')
-# img_annotation = cv.imread('../datasets/qsd2_w1/00004.png',0)
+def generate_report():
+    all_mean_measures = []
 
-# show_xyz('00004','yuv')
+    for i in range(255, 0, -1):
+        input_measures_data = generate_masks([0, 255], [0, i], [0, 255], 'hsv', False)
+        df = pd.DataFrame(np.array(input_measures_data), columns=['image', 'precision', 'recall', 'f1'])
 
-# measures_data = generate_masks([0,20],[150,255],[0,255], 'hsv')
-#measures_data = generate_masks([50,255],[120,255],[50,255], 'bgr')
-# measures_data = generate_masks([100,255],[0,255],[0,255], 'cielab')
-#measures_data = generate_masks([50, 255], [0, 255], [100, 255], 'ycrcb')
+        mean_measures = [i, df['precision'].mean(), df['recall'].mean(), df['f1'].mean()]
+        all_mean_measures.append((mean_measures))
+        print(i)
 
-#generate_measures_output(measures_data, False)
+    df_all = pd.DataFrame(np.array(all_mean_measures), columns=['sat value', 'precision', 'recall', 'f1'])
+    df_all.to_excel("../output_measures_hsv_s_255_0.xlsx")
 
-# cv.imshow('eqlz',equalize_histogram('00024'))
-# cv.waitKey()
-# show_xyz('00017','ycrcb')
-# cv.waitKey()
+
+def main():
+    # show_xyz('00004', 'bgr')
+
+    measures_data = generate_masks([20, 255], [0, 255], [0, 255], 'hsv', generate_images_of_masks=True)
+    # measures_data = generate_masks([0, 130], [0, 255], [50, 255], 'bgr', generate_images_of_masks=False)
+    # measures_data = generate_masks([100,255],[0,255],[0,255], 'cielab')
+    # measures_data = generate_masks([50, 255], [0, 255], [100, 255], 'ycrcb')
+
+    # best performance:
+    # measures_data = generate_masks([0, 124], [0, 255], [0, 255], colorspace='bgr', generate_images_of_masks=True)
+
+    generate_measures_output(measures_data, show_graph=True)
+
+    # cv.imshow('eqlz',equalize_histogram('00024'))
+    # cv.waitKey()
+    # show_xyz('00017','ycrcb')
+    # cv.waitKey()
+
+    # generate_report()
+
+
+main()
 
 """
 ## what if we just take histogram of center of the photo where for sure is
@@ -178,21 +201,11 @@ how well it will find cut out photos with 0,79 F1 ?
 what if we take hue channel 0-20 where precision in 86% and low recall and connect with blue channel over 150
 which has high recall over 90%
 
+
+What are characteristics of images that have over 80% F1 when range of blue is 0-124 ?
+What are characteristics of other half ?
+
+!!! if in histogram red,blue,green have the same high value in an area its white ( like background)
+
+cut pixels where g & R & b together are bigger than 120
 """
-
-def generate_report():
-
-    all_mean_measures=[]
-
-    for i in range(0,255):
-        input_measures_data = generate_masks([0,255],[i,255],[0,255],'bgr')
-        df = pd.DataFrame(np.array(input_measures_data), columns=['image', 'precision', 'recall', 'f1'])
-
-        mean_measures = [i, df['precision'].mean(),df['recall'].mean(), df['f1'].mean()]
-        all_mean_measures.append((mean_measures))
-        print(i)
-
-    df_all = pd.DataFrame(np.array(all_mean_measures), columns=['green value', 'precision', 'recall', 'f1'])
-    df_all.to_excel("../output_measures_bgr_g_notbitwisenot.xlsx")
-
-generate_report()
