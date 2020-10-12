@@ -43,3 +43,18 @@ args:
 -d {descriptor name from descriptor_lib.py} 
 -m {metric from distance_metrics_lib.py}
 -k {number of most similar paintings to find}
+
+3. to get results for background removal for an image for all methods run background_removal.py
+
+example run:
+
+python background_removal.py -i 00003 -d True -s True
+
+args:
+-i {name of the image without extension}
+-d {display of measures}
+-s {save the mask as an image}
+
+example result:
+('msc', {'name': '00004', 'precision': 0.8221164520426287, 'recall': 0.9300189943958683, 'F1_measure': 0.872745217910096})
+('mst', {'name': '00004', 'precision': 0.8670100260953166, 'recall': 0.9909580396527636, 'F1_measure': 0.9248496480188699})
