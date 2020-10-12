@@ -48,13 +48,17 @@ def method_similar_channels(image, thresh, save):
     for py in range(0, h):
         for px in range(0, w):
             # print(m[py][px])
-            b_g = img[py][px][0] - img[py][px][1]
-            b_r = img[py][px][0] - img[py][px][2]
-            g_r = img[py][px][1] - img[py][px][2]
+            blue = img[py][px][0]
+            green = img[py][px][1]
+            red = img[py][px][2]
+            b_g = blue - green
+            b_r = blue - red
+            g_r = green - red
             # and bigger than 100 to not be black
             if (-thresh < b_g < thresh) \
                     and (-thresh < b_r < thresh) \
-                    and (-thresh < g_r < thresh):
+                    and (-thresh < g_r < thresh) \
+                    and (blue > 100 and green > 100 and red > 100) :
                 # print('similar value')
                 mask_matrix[py][px] = 0
             else:
@@ -94,7 +98,7 @@ def method_colorspace_threshold(image, x_range, y_range, z_range, colorspace, sa
     mask0 = cv.inRange(img, lower, upper)
 
     if save:
-        cv.imwrite(f'../datasets/masks_extracted/{image}_mst.png', mask0)
+        cv.imwrite(f'../datasets/masks_extracted/{image}_mst_{colorspace}.png', mask0)
 
     return get_measures(image,mask0)
 

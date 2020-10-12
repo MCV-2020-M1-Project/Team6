@@ -170,13 +170,13 @@ def generate_report():
 def main():
     # show_xyz('00004', 'bgr')
 
-    measures_data = generate_masks([20, 255], [0, 255], [0, 255], 'hsv', generate_images_of_masks=True)
+    #measures_data = generate_masks([20, 255], [0, 255], [0, 255], 'hsv', generate_images_of_masks=True)
     # measures_data = generate_masks([0, 130], [0, 255], [50, 255], 'bgr', generate_images_of_masks=False)
     # measures_data = generate_masks([100,255],[0,255],[0,255], 'cielab')
     # measures_data = generate_masks([50, 255], [0, 255], [100, 255], 'ycrcb')
 
     # best performance:
-    # measures_data = generate_masks([0, 124], [0, 255], [0, 255], colorspace='bgr', generate_images_of_masks=True)
+    measures_data = generate_masks([0, 124], [0, 255], [0, 255], colorspace='bgr', generate_images_of_masks=True)
 
     generate_measures_output(measures_data, show_graph=True)
 
