@@ -19,15 +19,16 @@ index_db.py
 
 2. to get results run the cbir to get list of K most similar paintings
 
-cbir.py -i 00001 -d 'bgr_concat_hist' -m 'corr'
+cbir.py -i 00001 -d 'bgr_concat_hist' -m 'corr' [-s]
 
 args:
 -i {name of image without extension}
 -d {descriptor name from descriptor_lib.py} 
 -m {metric from distance_metrics_lib.py}
+-s {if on cbir gets k bigger results (like for correlation or intersection) and k lower results (as for euclidean, l1 or x2 distances)}
 
 example run:
-cbir.py -i 00001 -d 'bgr_concat_hist' -m 'corr'
+cbir.py -i 00001 -d 'bgr_concat_hist' -m 'corr' -s
 
 example result:
 [120, 201, 304]
@@ -36,13 +37,14 @@ example result:
 
 example run:
 
-python retrieval_evaluation.py -q qsd1_w1 -d 'bgr_concat_hist' -m 'corr' -k 5
+python retrieval_evaluation.py -q qsd1_w1 -d 'bgr_concat_hist' -m 'corr' -k 5 -s
 
 args:
 -q {name of the query set - it has to be inside datasets directory}
 -d {descriptor name from descriptor_lib.py} 
 -m {metric from distance_metrics_lib.py}
 -k {number of most similar paintings to find}
+-s {if on cbir gets k bigger results (like for correlation or intersection) and k lower results (as for euclidean, l1 or x2 distances)}
 
 3. to get results for background removal for an image for all methods run background_removal.py
 
