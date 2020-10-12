@@ -42,6 +42,17 @@ def get_x2_distance(descriptor_a, descriptor_b):
     return np.sum(np.divide(num, den, out=np.zeros_like(num), where=den != 0))
 
 
+def get_chisq_distance(descriptor_a, descriptor_b):
+    '''
+    Gets descriptors as numpy arrays and returns X2 distance
+    '''
+    dif = descriptor_a - descriptor_b
+
+    num = dif*dif
+    den = descriptor_a
+    return np.sum(np.divide(num, den, out=np.zeros_like(num), where=den != 0))
+
+
 def get_hist_intersection(descriptor_a, descriptor_b):
     '''
     Gets descriptors as numpy arrays and returns histogram intersection
@@ -85,7 +96,8 @@ def display_comparison(a, b):
             'L1: ' + str(round(get_l1_distance(a, b), 2)), 
             'Hist intersection: ' + str(round(get_hist_intersection(a, b), 2)),
             'Hellinger Kernel: ' + str(round(get_hellinger_kernel(a, b), 2)),
-            'Correlation: ' + str(round(get_correlation(a, b), 2))
+            'Correlation: ' + str(round(get_correlation(a, b), 2)),
+            'Chi square:' + str(round(get_chisq_distance(a, b), 2))
         ]
 
     # Draw histograms
@@ -134,12 +146,16 @@ def get_all_measures(a, b, display=False):
     * 'hell_ker': Hellinger kernel (similarity)
     * 'corr': correlation
     '''
+    cv2.normalize(a, a, norm_type=cv2.NORM_L1)
+    cv2.normalize(b, b, norm_type=cv2.NORM_L1)
+
     measures = {'eucl': get_euclidean_distance(a, b),
                 'l1': get_l1_distance(a, b),
                 'x2': get_x2_distance(a, b),
                 'h_inter': get_hist_intersection(a, b),
                 'hell_ker': get_hellinger_kernel(a, b), 
-                'corr': get_correlation(a, b)
+                'corr': get_correlation(a, b),
+                'chisq': get_chisq_distance(a, b)
                 }
 
     if display:
