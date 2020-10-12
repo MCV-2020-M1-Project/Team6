@@ -1,4 +1,4 @@
-import argparse
+import argparse,os
 
 import cv2 as cv
 import numpy as np
@@ -31,7 +31,7 @@ def show_image(im):
     print(x)
 
 
-def method_similar_channels(image, thresh):
+def method_similar_channels(image, thresh, save):
     # read image into matrix.
     img = cv.imread(f'../datasets/qsd2_w1/{image}.jpg').astype(float)  # BGR, float
 
@@ -61,11 +61,13 @@ def method_similar_channels(image, thresh):
                 mask_matrix[py][px] = 255
     # cv.imshow('matrix',mask_matrix)
     # cv.waitKey()
+    if save:
+        cv.imwrite(f'../datasets/masks_extracted/{image}_msc.png', mask_matrix)
 
     return get_measures(image,mask_matrix)
 
 
-def method_colorspace_thresholding(image, x_range, y_range, z_range, colorspace):
+def method_colorspace_threshold(image, x_range, y_range, z_range, colorspace, save):
     """
     x = [bottom,top]
     y = [bottom,top]
@@ -91,18 +93,21 @@ def method_colorspace_thresholding(image, x_range, y_range, z_range, colorspace)
     upper = np.array([x_range[1], y_range[1], z_range[1]])
     mask0 = cv.inRange(img, lower, upper)
 
+    if save:
+        cv.imwrite(f'../datasets/masks_extracted/{image}_mst.png', mask0)
+
     return get_measures(image,mask0)
 
 
-def get_all_methods(im, display=False):
+def get_all_methods(im, display, save):
     """
     Return a dictionary with all available measures. Keys are:
     * 'msc': method_similar_channels
     * 'mst': method_colorspace_thresholding(image, range x[a,b], range y[c,d], range z[e,f], colorspace)
     """
 
-    measures = {'msc': method_similar_channels(im, 30),
-                'mst': method_colorspace_thresholding(im, [0, 120], [0, 255], [0, 255], 'bgr'),
+    measures = {'msc': method_similar_channels(im, 30, save=save),
+                'mst': method_colorspace_threshold(im, [0, 120], [0, 255], [0, 255], 'bgr',save=save),
                 'other': 'other method',
 
                 }
@@ -113,17 +118,23 @@ def get_all_methods(im, display=False):
 
     return measures
 
-def main(image, display):
-    get_all_methods(image, display)
+
+def main(image, display, save):
+    if not os.path.exists('../datasets/masks_extracted/'):
+        os.makedirs('../datasets/masks_extracted/')
+
+    get_all_methods(image, display, save)
+
 
 if __name__ == '__main__':
 
     parser = argparse.ArgumentParser()
     parser.add_argument('-i', '--image', required=True, type=str, help='Image')
     parser.add_argument('-d', '--display', required=False, type=bool, default=True, help='display measures')
+    parser.add_argument('-s', '--save', required=False, type=bool, default=False, help='display measures')
     args = parser.parse_args()
 
-    main(args.image, args.display)
+    main(args.image, args.display, args.save)
 
 # show_image('00000')
 #method_similar_channels('00003')
