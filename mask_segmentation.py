@@ -37,7 +37,6 @@ def show_xyz(im, colorspace):
     cv.waitKey(0)
     cv.destroyAllWindows()
 
-
 def generate_masks(x_range, y_range, z_range, colorspace, generate_images_of_masks):
     """
     x = [bottom,top]
@@ -187,8 +186,12 @@ def main():
 
     # generate_report()
 
+import background_removal
+#main()
 
-main()
+all_measures = background_removal.get_all_measures_all_photos(False)
+
+
 
 """
 ## what if we just take histogram of center of the photo where for sure is

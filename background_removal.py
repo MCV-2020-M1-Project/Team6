@@ -3,6 +3,7 @@ import argparse,os
 import cv2 as cv
 import numpy as np
 from evaluation import mask_evaluation
+import glob
 
 
 def get_measures(image, mask):
@@ -37,12 +38,7 @@ def method_similar_channels(image, thresh, save):
 
     # get image properties.
     h, w, bpp = np.shape(img)
-    print(h, w)
     mask_matrix = np.empty(shape=(h, w), dtype='uint8')
-    # print('pixel=',mask_matrix[0][0][0])
-    # print(mask_matrix)
-
-    thresh = 30
 
     # iterate over the entire image.
     for py in range(0, h):
@@ -121,6 +117,18 @@ def get_all_methods(im, display, save):
             print(k)
 
     return measures
+
+def get_all_measures_all_photos(save):
+    files_img = glob.glob('../datasets/qsd2_w1/*.png')
+
+    all_measures = []
+
+    for index, image in enumerate(files_img):
+        image = image[-9:-4]
+        measure = get_all_methods(image, display=True, save=save)
+        all_measures.append(measure)
+
+    return all_measures
 
 
 def main(image, display, save):
