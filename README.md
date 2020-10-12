@@ -48,11 +48,12 @@ args:
 
 example run:
 
-python background_removal.py -i 00003 -d True
+python background_removal.py -i 00003 -d True -s True
 
 args:
 -i {name of the image without extension}
 -d {display of measures}
+-s {save the mask as an image}
 
 example result:
 ('msc', {'name': '00004', 'precision': 0.8221164520426287, 'recall': 0.9300189943958683, 'F1_measure': 0.872745217910096})
