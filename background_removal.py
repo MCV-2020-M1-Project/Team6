@@ -4,7 +4,7 @@ import cv2 as cv
 import numpy as np
 from evaluation import mask_evaluation
 import glob
-
+import pickle as pkl
 
 def get_measures(image, mask):
     img_annotation = cv.imread(f'../datasets/qsd2_w1/{image}.png',0)
@@ -63,6 +63,9 @@ def method_similar_channels(image, thresh, save):
     # cv.waitKey()
     if save:
         cv.imwrite(f'../datasets/masks_extracted/{image}_msc.png', mask_matrix)
+        path=f'pkl_data/masks_extracted/result_{image}.pkl'
+        with open(path, 'wb') as dbfile:
+            pkl.dump(mask_matrix, dbfile)
 
     return get_measures(image,mask_matrix)
 
@@ -95,11 +98,14 @@ def method_colorspace_threshold(image, x_range, y_range, z_range, colorspace, sa
 
     if save:
         cv.imwrite(f'../datasets/masks_extracted/{image}_mst_{colorspace}.png', mask0)
+        path=f'pkl_data/masks_extracted/result_{image}.pkl'
+        with open(path, 'wb') as dbfile:
+            pkl.dump(mask0, dbfile)
 
     return get_measures(image,mask0)
 
 
-def get_all_methods(im, display, save):
+def get_all_methods_per_photo(im, display, save):
     """
     Return a dictionary with all available measures. Keys are:
     * 'msc': method_similar_channels
@@ -108,7 +114,7 @@ def get_all_methods(im, display, save):
 
     measures = {'msc': method_similar_channels(im, 30, save=save),
                 'mst': method_colorspace_threshold(im, [0, 120], [0, 255], [0, 255], 'bgr',save=save),
-                'other': 'other method',
+                'other': {'name':"get_measures(image,mask)"},
 
                 }
     #methods returning masks and should return measures
@@ -118,6 +124,7 @@ def get_all_methods(im, display, save):
 
     return measures
 
+
 def get_all_measures_all_photos(save):
     files_img = glob.glob('../datasets/qsd2_w1/*.png')
 
@@ -125,8 +132,22 @@ def get_all_measures_all_photos(save):
 
     for index, image in enumerate(files_img):
         image = image[-9:-4]
-        measure = get_all_methods(image, display=True, save=save)
+        measure = get_all_methods_per_photo(image, display=True, save=save)
         all_measures.append(measure)
+
+    with open('../background_removal_all_methods_all_photos.csv', 'a') as f:
+        all_rows = []
+        header = 'method' + ',name' + ',precision' + ',recall' + ',F1_measure'
+        all_rows.append(header)
+        for item in all_measures:
+            for k, v in item.items():
+                row = "\n" + k
+                for i in v.values():
+                    row = row + "," + str(i)
+                print(row)
+                all_rows.append(row)
+
+        f.writelines(all_rows)
 
     return all_measures
 
@@ -135,7 +156,10 @@ def main(image, display, save):
     if not os.path.exists('../datasets/masks_extracted/'):
         os.makedirs('../datasets/masks_extracted/')
 
-    get_all_methods(image, display, save)
+    if not os.path.exists('pkl_data/masks_extracted/'):
+        os.makedirs('pkl_data/masks_extracted/')
+
+    get_all_methods_per_photo(image, display, save)
 
 
 if __name__ == '__main__':
