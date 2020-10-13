@@ -13,7 +13,7 @@ def calculate_mean_all(mapk_values):
     mean_of_mapk=sum(mapk_values)/len(mapk_values)
     return mean_of_mapk
 
-def main(queryset_name, descriptor, measure, k, similarity):
+def main(queryset_name, descriptor, measure, k, similarity, background):
 
     #Read descriptors of the museum db from .pkl
     path = ['pkl_data','bd_descriptors.pkl'] #for making the path system independent
@@ -34,6 +34,13 @@ def main(queryset_name, descriptor, measure, k, similarity):
         if img is None:
             print('Error reading image', os.path.join(*path))
             quit()
+
+        if background:
+            # placeholder call to bg removal 
+            # img = bg.remove_bg(img) or whatever
+            print('Placeholder for background_removal(query_img) call')
+            pass
+
         qs_descript_list.append(desc.get_descriptors(img)) #get a dic with the descriptors for the img
 
     predicted = [] #order predicted list of images for the method used on particular image
@@ -71,9 +78,10 @@ if __name__ == "__main__":
     parser.add_argument('-q', required=True, type=str, help='query set')
     parser.add_argument('-d', required=False, default='bgr_concat_hist', type=str)
     parser.add_argument('-m', required=False, default='corr', type=str)
-    parser.add_argument('-k', required=False, default='5', type=int)
+    parser.add_argument('-k', required=False, default=5, type=int)
+    parser.add_argument('-b', '--background', required=False, default=False, action='store_true')
     parser.add_argument('-s', '--similarity', required=False, default=False, action='store_true')
 
     args = parser.parse_args()
 
-    main(args.q, args.d, args.m, args.k, args.similarity)
+    main(args.q, args.d, args.m, args.k, args.similarity, args.background)
