@@ -5,6 +5,7 @@ import numpy as np
 from evaluation import mask_evaluation
 import glob
 import pickle as pkl
+import method_kmeans_colour
 
 def get_measures(image, mask):
     img_annotation = cv.imread(f'../datasets/qsd2_w1/{image}.png',0)
@@ -105,6 +106,35 @@ def method_colorspace_threshold(image, x_range, y_range, z_range, colorspace, sa
     return get_measures(image,mask0)
 
 
+def method_mostcommon_color_kmeans(image, k, thresh, colorspace, save):
+    bgr,hsv = method_kmeans_colour.get_most_common_color(image,k)
+
+    img = cv.imread(f'../datasets/qsd2_w1/{image}.jpg')
+
+    if colorspace == 'bgr':
+        # mask color
+        lower = np.array([bgr[0]-thresh, bgr[1]-thresh, bgr[2]-thresh])
+        upper = np.array([bgr[0]+thresh, bgr[1]+thresh, bgr[2]+thresh])
+        mask0 = cv.inRange(img, lower, upper)
+        mask0 = cv.bitwise_not(mask0,mask0)
+
+    if colorspace == 'hsv':
+        img = cv.cvtColor(img,cv.COLOR_BGR2HSV)
+        # mask color
+        lower = np.array([hsv[0]-thresh, hsv[1]-thresh, hsv[2]-thresh])
+        upper = np.array([hsv[0]+thresh, hsv[1]+thresh, hsv[2]+thresh])
+        mask0 = cv.inRange(img, lower, upper)
+        mask0 = cv.bitwise_not(mask0,mask0)
+
+    if save:
+        cv.imwrite(f'../datasets/masks_extracted/{image}_mck_{colorspace}.png', mask0)
+        path=f'pkl_data/masks_extracted/result_{image}.pkl'
+        with open(path, 'wb') as dbfile:
+            pkl.dump(mask0, dbfile)
+
+    return get_measures(image,mask0)
+
+
 def get_all_methods_per_photo(im, display, save):
     """
     Return a dictionary with all available measures. Keys are:
@@ -114,6 +144,8 @@ def get_all_methods_per_photo(im, display, save):
 
     measures = {'msc': method_similar_channels(im, 30, save=save),
                 'mst': method_colorspace_threshold(im, [0, 120], [0, 255], [0, 255], 'bgr',save=save),
+                'msk_bgr': method_mostcommon_color_kmeans(im,5,30,colorspace='bgr', save=save),
+                'msk_hsv': method_mostcommon_color_kmeans(im, 5, 10, colorspace='hsv', save=save),
                 'other': {'name':"get_measures(image,mask)"},
 
                 }
@@ -144,7 +176,7 @@ def get_all_measures_all_photos(save):
                 row = "\n" + k
                 for i in v.values():
                     row = row + "," + str(i)
-                print(row)
+                #print(row)
                 all_rows.append(row)
 
         f.writelines(all_rows)
