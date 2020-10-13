@@ -90,14 +90,15 @@ def display_comparison(a, b):
     # image
     display_m_img = np.zeros((460, 828, 3), dtype=np.uint8)
 
+    distances = get_all_measures(a, b)
     # measures
-    text = ['Euclidean: ' + str(round(get_euclidean_distance(a, b), 2)),
-            'X2: ' + str(round(get_x2_distance(a, b), 2)),
-            'L1: ' + str(round(get_l1_distance(a, b), 2)), 
-            'Hist intersection: ' + str(round(get_hist_intersection(a, b), 2)),
-            'Hellinger Kernel: ' + str(round(get_hellinger_kernel(a, b), 2)),
-            'Correlation: ' + str(round(get_correlation(a, b), 2)),
-            'Chi square:' + str(round(get_chisq_distance(a, b), 2))
+    text = ['Euclidean: ' + str(round(distances['eucl'], 2)),
+            'X2: ' + str(round(distances['x2'], 2)),
+            'L1: ' + str(round(distances['l1'], 2)), 
+            'Hist intersection: ' + str(round(distances['h_inter'], 2)),
+            'Hellinger Kernel: ' + str(round(distances['hell_ker'], 2)),
+            'Correlation: ' + str(round(distances['corr'], 2)),
+            'Chi square:' + str(round(distances['chisq'], 2))
         ]
 
     # Draw histograms
@@ -146,8 +147,9 @@ def get_all_measures(a, b, display=False):
     * 'hell_ker': Hellinger kernel (similarity)
     * 'corr': correlation
     '''
-    cv2.normalize(a, a, norm_type=cv2.NORM_L1)
-    cv2.normalize(b, b, norm_type=cv2.NORM_L1)
+    norm_type = cv2.NORM_L2
+    cv2.normalize(a, a, norm_type=norm_type, alpha=1., beta= 1.)
+    cv2.normalize(b, b, norm_type=norm_type, alpha=1., beta= 1.)
 
     measures = {'eucl': get_euclidean_distance(a, b),
                 'l1': get_l1_distance(a, b),
