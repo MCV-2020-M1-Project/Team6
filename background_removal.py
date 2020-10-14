@@ -165,6 +165,93 @@ def method_mostcommon_color_kmeans(image, k, thresh, colorspace, save, generate_
         return mask_matrix
 
 
+def method_watershed(image, save, generate_measures=False):
+    """
+        Return a binary mask that disregards background using watershed algorithm.
+        Assumes that the background is close to the boundaries of the image and that the painting is smooth.
+        Param: image (BGR)
+        return: mask (binary image)
+    """
+    if generate_measures:
+        name = image
+        img = cv.imread(f'../datasets/qsd2_w1/{name}.jpg')
+    else:
+        img = image
+
+    img = cv.cvtColor(img, cv.COLOR_BGR2RGB)
+
+    y_lim = img.shape[0]
+    x_lim = img.shape[1]
+
+    # mask is all zeroes except for background and painting markers
+    mask = np.zeros_like(img[:, :, 0]).astype(np.int32)
+
+    # Background pixels will be set to 1, this assumes position 5,5 is background
+    mask[5, 5] = 1
+
+    # pixels belonging to painting are set to 255, assuming the painting is always at the center of the image
+    mask[int(y_lim / 2), int(x_lim / 2)] = 255
+    mask[int(y_lim / 2) - 20, int(x_lim / 2)] = 255
+    mask[int(y_lim / 2) + 20, int(x_lim / 2)] = 255
+    mask[int(y_lim / 2), int(x_lim / 2) - 20] = 255
+    mask[int(y_lim / 2), int(x_lim / 2) + 20] = 255
+    mask[y_lim - int(y_lim * 0.3), int(x_lim / 2) + 20] = 255
+
+    mask = cv.watershed(img, mask)
+    mask = (mask > 1)*255  # binarize (watershed did classify background as 1, non background as -1 and painting as 255)
+
+    if save:
+        if not os.path.exists(f'../datasets/masks_extracted/watershed/'):
+            os.makedirs(f'../datasets/masks_extracted/watershed/')
+        cv.imwrite(f'../datasets/masks_extracted/watershed/{name}.png', mask)
+
+    if generate_measures:
+        return get_measures(image, mask)
+    else:
+        return mask
+
+
+def method_canny(image, save, generate_measures=False):
+    """
+    Calculate background limits regarding painting by detecting lines belonging to painting's frame.
+    Assumes a smooth background.
+    :param img:  image (BGR)
+    :return: binary mask
+    """
+
+    if generate_measures:
+        name = image
+        img = cv.imread(f'../datasets/qsd2_w1/{name}.jpg')
+    else:
+        img = image
+
+    image_gray = cv.cvtColor(img, cv.COLOR_RGB2GRAY)
+    mask = np.zeros_like(image_gray).astype(np.int32)
+
+    blurred = cv.GaussianBlur(image_gray, (5, 5), 0)
+    canny = cv.Canny(blurred, 50, 150)
+
+    sum_col_values = canny.sum(axis=0)
+    sum_row_values = canny.sum(axis=1)
+
+    upper_frame = np.nonzero(sum_row_values)[0][0]
+    lower_frame = (canny.shape[0]-1) - np.nonzero(sum_row_values[::-1])[0][0]
+    left_frame = np.nonzero(sum_col_values)[0][0]
+    right_frame = (canny.shape[1]-1) - np.nonzero(sum_col_values[::-1])[0][0]
+
+    mask[upper_frame:lower_frame, left_frame:right_frame] = 255  # pixels corresponding to detected painting area
+
+    if save:
+        if not os.path.exists(f'../datasets/masks_extracted/canny/'):
+            os.makedirs(f'../datasets/masks_extracted/canny/')
+        cv.imwrite(f'../datasets/masks_extracted/canny/{name}.png', mask)
+
+    if generate_measures:
+        return get_measures(image, mask)
+    else:
+        return mask
+
+
 def get_all_methods_per_photo(im, display, save):
     """
     Return a dictionary with all available measures. Keys are:
@@ -178,7 +265,9 @@ def get_all_methods_per_photo(im, display, save):
                 'msk_bgr': method_mostcommon_color_kmeans(im, 5, 30, colorspace='bgr', save=save,
                                                           generate_measures=True),
                 'msk_hsv': method_mostcommon_color_kmeans(im, 5, 10, colorspace='hsv', save=save,
-                                                          generate_measures=True)
+                                                          generate_measures=True),
+                'canny': method_canny(im, save=save, generate_measures=True),
+                'watershed': method_watershed(im, save=save, generate_measures=True)
                 }
     # methods returning masks and should return measures
     if display:
