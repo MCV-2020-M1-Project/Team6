@@ -68,7 +68,7 @@ def method_similar_channels(image, thresh, save):
         with open(path, 'wb') as dbfile:
             pkl.dump(mask_matrix, dbfile)
 
-    return get_measures(image,mask_matrix)
+    return get_measures(image,mask_matrix),mask_matrix
 
 
 def method_colorspace_threshold(image, x_range, y_range, z_range, colorspace, save):
@@ -103,10 +103,20 @@ def method_colorspace_threshold(image, x_range, y_range, z_range, colorspace, sa
         with open(path, 'wb') as dbfile:
             pkl.dump(mask0, dbfile)
 
-    return get_measures(image,mask0)
+    return get_measures(image,mask0),mask0
 
 
 def method_mostcommon_color_kmeans(image, k, thresh, colorspace, save):
+    """
+    methods uses kmeans to find most common colors on the photo, based on this information
+    it's filtering that color considering it a background.
+
+    k - provides number of buckets for kmeans algorithm
+    thresh - provides number that creates the filter of colors close to the most common one
+    colorspcae - allows to choose from different colorspaces bgr to hsv
+    save - indicates whether you want to save masks or not
+
+    """
     bgr,hsv = method_kmeans_colour.get_most_common_color(image,k)
 
     img = cv.imread(f'../datasets/qsd2_w1/{image}.jpg')
@@ -132,7 +142,7 @@ def method_mostcommon_color_kmeans(image, k, thresh, colorspace, save):
         with open(path, 'wb') as dbfile:
             pkl.dump(mask0, dbfile)
 
-    return get_measures(image,mask0)
+    return get_measures(image,mask0),mask0
 
 
 def get_all_methods_per_photo(im, display, save):
