@@ -48,6 +48,34 @@ def get_hsv_concat_hist(img):
     hist_v = cv2.calcHist([hsv],[2],None,[256],[0,256])
     return np.concatenate((hist_h, hist_s, hist_v))
 
+def get_hs_concat_hist(img):
+    ''' Paramenters: img (color image)
+        Returns: numpyarray with the 3 HSV histograms concatenated '''
+
+    hsv = cv2.cvtColor(img, cv2.COLOR_BGR2HSV)
+    hist_h = cv2.calcHist([hsv],[0],None,[256],[0,256])
+    hist_s = cv2.calcHist([hsv],[1],None,[256],[0,256])
+    hist_v = cv2.calcHist([hsv],[2],None,[256],[0,256])
+    return np.concatenate((hist_h, hist_s, hist_v))
+
+def get_multi_hist(img):
+    ''' Paramenters: img (color image)
+        Returns: return several hist concat result of splitting the image '''
+
+    hsv = cv2.cvtColor(img, cv2.COLOR_BGR2HSV)
+
+    (h, w) = hsv.shape[:2]
+    tile1 = hsv[0:h/2, 0:w/2]
+    tile2 = hsv[0:h/2, w/2:-1]
+    tile3 = hsv[h/2:-1, 0:w/2]
+    tile4 = hsv[h/2:-1, w/2:-1]
+
+    hist_tile1 = cv2.calcHist([tile1],[0],None,[256],[0,256])
+    hist_tile2 = cv2.calcHist([tile2],[1],None,[256],[0,256])
+    hist_tile3 = cv2.calcHist([tile3],[2],None,[256],[0,256])
+    hist_tile4 = cv2.calcHist([tile4],[2],None,[256],[0,256])
+    return np.concatenate((hist_tile1, hist_tile2, hist_tile3, hist_tile4))
+
 def get_descriptors(img):
     ''' Paramenters: img (color image)
         Returns: descript_dic (dictionary with descriptors names as keys) '''
