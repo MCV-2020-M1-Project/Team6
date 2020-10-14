@@ -50,10 +50,10 @@ args:
 
 example run:
 
-python background_removal.py -i 00003 -d True -s True
+python background_removal.py -n 00003 -d True -s True
 
 args:
--i {name of the image without extension}
+-n {name of the image without extension}
 -d {display of measures}
 -s {save the mask as an image}
 

@@ -47,7 +47,7 @@ def sort_hsvs(hsv_list):
 
 def get_most_common_color(image, k):
     # START HERE
-    img = cv2.imread(f'../datasets/qsd2_w1/{image}.jpg')
+    img = image
     height, width, _ = np.shape(img)
 
     # reshape the image to be a simple list of RGB pixels
@@ -78,14 +78,14 @@ def get_most_common_color(image, k):
 
     # sort the bars[] list so that we can show the colored boxes sorted
     # by their HSV values -- sort by hue, then saturation
-    sorted_bar_indexes = sort_hsvs(hsv_values)
-    sorted_bars = [bars[idx] for idx in sorted_bar_indexes]
+    #sorted_bar_indexes = sort_hsvs(hsv_values)
+    #sorted_bars = [bars[idx] for idx in sorted_bar_indexes]
 
-    cv2.imshow('Sorted by HSV values', np.hstack(sorted_bars))
-    cv2.imshow(f'{num_clusters} Most Common Colors', np.hstack(bars))
-    cv2.waitKey(0)
+    #cv2.imshow('Sorted by HSV values', np.hstack(sorted_bars))
+    #cv2.imshow(f'{num_clusters} Most Common Colors', np.hstack(bars))
+    #cv2.waitKey(0)
     bgr = (bars[0][0][0][0],bars[0][0][0][1],bars[0][0][0][2])
 
     return bgr,hsv_values[0]
 
-get_most_common_color('00002',5)
+#get_most_common_color('00002',5)
