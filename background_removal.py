@@ -1,4 +1,4 @@
-import argparse,os
+import argparse, os
 
 import cv2 as cv
 import numpy as np
@@ -7,16 +7,17 @@ import glob
 import pickle as pkl
 import method_kmeans_colour
 
-def get_measures(image, mask):
-    img_annotation = cv.imread(f'../datasets/qsd2_w1/{image}.png',0)
+
+def get_measures(name, mask):
+    img_annotation = cv.imread(f'../datasets/qsd2_w1/{name}.png', 0)
     p, r, f = mask_evaluation.mask_evaluation(img_annotation, mask)
 
-    measure_dict = {'name': image,
+    measure_dict = {'name': name,
                     'precision': p,
                     'recall': r,
                     'F1_measure': f}
 
-    measure_list = [image, p, r, f]
+    measure_list = [name, p, r, f]
 
     return measure_dict
 
@@ -33,9 +34,13 @@ def show_image(im):
     print(x)
 
 
-def method_similar_channels(image, thresh, save):
+def method_similar_channels(image, thresh, save, generate_measures):
     # read image into matrix.
-    img = cv.imread(f'../datasets/qsd2_w1/{image}.jpg').astype(float)  # BGR, float
+    if generate_measures:
+        name = image
+        img = cv.imread(f'../datasets/qsd2_w1/{name}.jpg').astype(float)  # BGR, float
+    else:
+        img = image.astype(float)
 
     # get image properties.
     h, w, bpp = np.shape(img)
@@ -55,7 +60,7 @@ def method_similar_channels(image, thresh, save):
             if (-thresh < b_g < thresh) \
                     and (-thresh < b_r < thresh) \
                     and (-thresh < g_r < thresh) \
-                    and (blue > 100 and green > 100 and red > 100) :
+                    and (blue > 100 and green > 100 and red > 100):
                 # print('similar value')
                 mask_matrix[py][px] = 0
             else:
@@ -63,15 +68,17 @@ def method_similar_channels(image, thresh, save):
     # cv.imshow('matrix',mask_matrix)
     # cv.waitKey()
     if save:
-        cv.imwrite(f'../datasets/masks_extracted/{image}_msc.png', mask_matrix)
-        path=f'pkl_data/masks_extracted/result_{image}.pkl'
-        with open(path, 'wb') as dbfile:
-            pkl.dump(mask_matrix, dbfile)
+        if not os.path.exists(f'../datasets/masks_extracted/msc/'):
+            os.makedirs(f'../datasets/masks_extracted/msc/')
+        cv.imwrite(f'../datasets/masks_extracted/msc/{name}.png', mask_matrix)
 
-    return get_measures(image,mask_matrix),mask_matrix
+    if generate_measures:
+        return get_measures(name, mask_matrix)
+    else:
+        return mask_matrix
 
 
-def method_colorspace_threshold(image, x_range, y_range, z_range, colorspace, save):
+def method_colorspace_threshold(image, x_range, y_range, z_range, colorspace, save, generate_measures):
     """
     x = [bottom,top]
     y = [bottom,top]
@@ -82,7 +89,11 @@ def method_colorspace_threshold(image, x_range, y_range, z_range, colorspace, sa
     colorspace = 'bgr','rgb','hsv','ycrcb','cielab','
     """
     masks_measures = []
-    img = cv.imread(f'../datasets/qsd2_w1/{image}.jpg')  # BGR, float
+    if generate_measures:
+        name = image
+        img = cv.imread(f'../datasets/qsd2_w1/{name}.jpg')  # BGR, float
+    else:
+        img = image
 
     if colorspace == 'bgr': pass
     if colorspace == 'rgb': img = cv.cvtColor(img, cv.COLOR_BGR2RGB, img)
@@ -95,18 +106,20 @@ def method_colorspace_threshold(image, x_range, y_range, z_range, colorspace, sa
     # mask color
     lower = np.array([x_range[0], y_range[0], z_range[0]])
     upper = np.array([x_range[1], y_range[1], z_range[1]])
-    mask0 = cv.inRange(img, lower, upper)
+    mask_matrix = cv.inRange(img, lower, upper)
 
     if save:
-        cv.imwrite(f'../datasets/masks_extracted/{image}_mst_{colorspace}.png', mask0)
-        path=f'pkl_data/masks_extracted/result_{image}.pkl'
-        with open(path, 'wb') as dbfile:
-            pkl.dump(mask0, dbfile)
+        if not os.path.exists(f'../datasets/masks_extracted/mst_{colorspace}/'):
+            os.makedirs(f'../datasets/masks_extracted/mst_{colorspace}/')
+        cv.imwrite(f'../datasets/masks_extracted/mst_{colorspace}/{name}.png', mask_matrix)
 
-    return get_measures(image,mask0),mask0
+    if generate_measures:
+        return get_measures(name, mask_matrix)
+    else:
+        return mask_matrix
 
 
-def method_mostcommon_color_kmeans(image, k, thresh, colorspace, save):
+def method_mostcommon_color_kmeans(image, k, thresh, colorspace, save, generate_measures):
     """
     methods uses kmeans to find most common colors on the photo, based on this information
     it's filtering that color considering it a background.
@@ -117,32 +130,40 @@ def method_mostcommon_color_kmeans(image, k, thresh, colorspace, save):
     save - indicates whether you want to save masks or not
 
     """
-    bgr,hsv = method_kmeans_colour.get_most_common_color(image,k)
 
-    img = cv.imread(f'../datasets/qsd2_w1/{image}.jpg')
+
+    if generate_measures:
+        name = image
+        img = cv.imread(f'../datasets/qsd2_w1/{name}.jpg')
+    else:
+        img = image
+
+    bgr, hsv = method_kmeans_colour.get_most_common_color(img, k)
 
     if colorspace == 'bgr':
         # mask color
-        lower = np.array([bgr[0]-thresh, bgr[1]-thresh, bgr[2]-thresh])
-        upper = np.array([bgr[0]+thresh, bgr[1]+thresh, bgr[2]+thresh])
-        mask0 = cv.inRange(img, lower, upper)
-        mask0 = cv.bitwise_not(mask0,mask0)
+        lower = np.array([bgr[0] - thresh, bgr[1] - thresh, bgr[2] - thresh])
+        upper = np.array([bgr[0] + thresh, bgr[1] + thresh, bgr[2] + thresh])
+        mask_matrix = cv.inRange(img, lower, upper)
+        mask_matrix = cv.bitwise_not(mask_matrix, mask_matrix)
 
     if colorspace == 'hsv':
-        img = cv.cvtColor(img,cv.COLOR_BGR2HSV)
+        img = cv.cvtColor(img, cv.COLOR_BGR2HSV)
         # mask color
-        lower = np.array([hsv[0]-thresh, hsv[1]-thresh, hsv[2]-thresh])
-        upper = np.array([hsv[0]+thresh, hsv[1]+thresh, hsv[2]+thresh])
-        mask0 = cv.inRange(img, lower, upper)
-        mask0 = cv.bitwise_not(mask0,mask0)
+        lower = np.array([hsv[0] - thresh, hsv[1] - thresh, hsv[2] - thresh])
+        upper = np.array([hsv[0] + thresh, hsv[1] + thresh, hsv[2] + thresh])
+        mask_matrix = cv.inRange(img, lower, upper)
+        mask_matrix = cv.bitwise_not(mask_matrix, mask_matrix)
 
     if save:
-        cv.imwrite(f'../datasets/masks_extracted/{image}_mck_{colorspace}.png', mask0)
-        path=f'pkl_data/masks_extracted/result_{image}.pkl'
-        with open(path, 'wb') as dbfile:
-            pkl.dump(mask0, dbfile)
+        if not os.path.exists(f'../datasets/masks_extracted/mck_{colorspace}/'):
+            os.makedirs(f'../datasets/masks_extracted/mck_{colorspace}/')
+        cv.imwrite(f'../datasets/masks_extracted/mck_{colorspace}/{name}.png', mask_matrix)
 
-    return get_measures(image,mask0),mask0
+    if generate_measures:
+        return get_measures(name, mask_matrix)
+    else:
+        return mask_matrix
 
 
 def get_all_methods_per_photo(im, display, save):
@@ -152,14 +173,15 @@ def get_all_methods_per_photo(im, display, save):
     * 'mst': method_colorspace_thresholding(image, range x[a,b], range y[c,d], range z[e,f], colorspace)
     """
 
-    measures = {'msc': method_similar_channels(im, 30, save=save),
-                'mst': method_colorspace_threshold(im, [0, 120], [0, 255], [0, 255], 'bgr',save=save),
-                'msk_bgr': method_mostcommon_color_kmeans(im,5,30,colorspace='bgr', save=save),
-                'msk_hsv': method_mostcommon_color_kmeans(im, 5, 10, colorspace='hsv', save=save),
-                'other': {'name':"get_measures(image,mask)"},
-
+    measures = {'msc': method_similar_channels(im, 30, save=save, generate_measures=True),
+                'mst': method_colorspace_threshold(im, [0, 120], [0, 255], [0, 255], 'bgr', save=save,
+                                                   generate_measures=True),
+                'msk_bgr': method_mostcommon_color_kmeans(im, 5, 30, colorspace='bgr', save=save,
+                                                          generate_measures=True),
+                'msk_hsv': method_mostcommon_color_kmeans(im, 5, 10, colorspace='hsv', save=save,
+                                                          generate_measures=True)
                 }
-    #methods returning masks and should return measures
+    # methods returning masks and should return measures
     if display:
         for k in measures.items():
             print(k)
@@ -186,7 +208,7 @@ def get_all_measures_all_photos(save):
                 row = "\n" + k
                 for i in v.values():
                     row = row + "," + str(i)
-                #print(row)
+                # print(row)
                 all_rows.append(row)
 
         f.writelines(all_rows)
@@ -194,26 +216,24 @@ def get_all_measures_all_photos(save):
     return all_measures
 
 
-def main(image, display, save):
+def main(name, display, save):
     if not os.path.exists('../datasets/masks_extracted/'):
         os.makedirs('../datasets/masks_extracted/')
 
     if not os.path.exists('pkl_data/masks_extracted/'):
         os.makedirs('pkl_data/masks_extracted/')
 
-    get_all_methods_per_photo(image, display, save)
+    get_all_methods_per_photo(name, display, save)
 
 
 if __name__ == '__main__':
-
     parser = argparse.ArgumentParser()
-    parser.add_argument('-i', '--image', required=True, type=str, help='Image')
+    parser.add_argument('-n', '--name', required=True, type=str, help='Name of the imagefile')
     parser.add_argument('-d', '--display', required=False, type=bool, default=True, help='display measures')
     parser.add_argument('-s', '--save', required=False, type=bool, default=False, help='display measures')
     args = parser.parse_args()
 
-    main(args.image, args.display, args.save)
+    main(args.name, args.display, args.save)
 
 # show_image('00000')
-#method_similar_channels('00003')
-
+# method_similar_channels('00003')
