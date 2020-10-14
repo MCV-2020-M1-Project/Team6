@@ -14,6 +14,7 @@ Metrics implemented:
 import random as rnd
 import numpy as np
 import cv2
+import pickle as pkl
 
 
 def get_euclidean_distance(descriptor_a, descriptor_b):
@@ -136,6 +137,14 @@ def display_comparison(a, b):
 
     return
 
+def get_gray_cov(a, b):
+    with open('gray_sim_mat.pkl', 'rb') as f:
+        M = pkl.load(f)
+
+    dif = a - b
+    A = np.matmul(np.transpose(dif), M)
+    dist = np.matmul(A, dif)
+    return dist[0][0]
 
 def get_all_measures(a, b, display=False):
     '''
@@ -157,7 +166,8 @@ def get_all_measures(a, b, display=False):
                 'h_inter': get_hist_intersection(a, b),
                 'hell_ker': get_hellinger_kernel(a, b), 
                 'corr': get_correlation(a, b),
-                'chisq': get_chisq_distance(a, b)
+                'chisq': get_chisq_distance(a, b),
+                'gray_cov': get_gray_cov(a, b)
                 }
 
     if display:
