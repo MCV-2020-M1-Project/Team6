@@ -36,7 +36,21 @@ def get_x2_distance(descriptor_a, descriptor_b):
     Gets descriptors as numpy arrays and returns X2 distance
     '''
     dif = descriptor_a - descriptor_b
-    return np.sum(dif*dif/(descriptor_a+descriptor_b))
+
+    num = dif*dif
+    den = descriptor_a+descriptor_b
+    return np.sum(np.divide(num, den, out=np.zeros_like(num), where=den != 0))
+
+
+def get_chisq_distance(descriptor_a, descriptor_b):
+    '''
+    Gets descriptors as numpy arrays and returns X2 distance
+    '''
+    dif = descriptor_a - descriptor_b
+
+    num = dif*dif
+    den = descriptor_a
+    return np.sum(np.divide(num, den, out=np.zeros_like(num), where=den != 0))
 
 
 def get_hist_intersection(descriptor_a, descriptor_b):
@@ -82,7 +96,8 @@ def display_comparison(a, b):
             'L1: ' + str(round(get_l1_distance(a, b), 2)), 
             'Hist intersection: ' + str(round(get_hist_intersection(a, b), 2)),
             'Hellinger Kernel: ' + str(round(get_hellinger_kernel(a, b), 2)),
-            'Correlation: ' + str(round(get_correlation(a, b), 2))
+            'Correlation: ' + str(round(get_correlation(a, b), 2)),
+            'Chi square:' + str(round(get_chisq_distance(a, b), 2))
         ]
 
     # Draw histograms
@@ -131,12 +146,16 @@ def get_all_measures(a, b, display=False):
     * 'hell_ker': Hellinger kernel (similarity)
     * 'corr': correlation
     '''
+    cv2.normalize(a, a, norm_type=cv2.NORM_L1)
+    cv2.normalize(b, b, norm_type=cv2.NORM_L1)
+
     measures = {'eucl': get_euclidean_distance(a, b),
                 'l1': get_l1_distance(a, b),
                 'x2': get_x2_distance(a, b),
                 'h_inter': get_hist_intersection(a, b),
                 'hell_ker': get_hellinger_kernel(a, b), 
-                'corr': get_correlation(a, b)
+                'corr': get_correlation(a, b),
+                'chisq': get_chisq_distance(a, b)
                 }
 
     if display:
@@ -152,8 +171,8 @@ def test():
     # b = np.array([rnd.uniform(0, 100) for i in range(255)], dtype=np.uint8)
 
     # with images
-    im1 = cv2.imread('../datasets/BBDD/bbdd_00201.jpg', 0)
-    im2 = cv2.imread('../datasets/qsd1_w1/00000.jpg', 0)
+    im1 = cv2.imread('../datasets/BBDD/bbdd_00170.jpg', 0)
+    im2 = cv2.imread('../datasets/qsd1_w1/00001.jpg', 0)
 
     a = cv2.calcHist([im1], [0], None, [256], (0, 256))
     b = cv2.calcHist([im2], [0], None, [256], (0, 256))
