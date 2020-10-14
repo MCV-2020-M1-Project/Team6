@@ -34,7 +34,7 @@ def show_image(im):
     print(x)
 
 
-def method_similar_channels(image, thresh, save, generate_measures):
+def method_similar_channels(image, thresh, save, generate_measures=False):
     # read image into matrix.
     if generate_measures:
         name = image
@@ -78,7 +78,7 @@ def method_similar_channels(image, thresh, save, generate_measures):
         return mask_matrix
 
 
-def method_colorspace_threshold(image, x_range, y_range, z_range, colorspace, save, generate_measures):
+def method_colorspace_threshold(image, x_range, y_range, z_range, colorspace, save, generate_measures=False):
     """
     x = [bottom,top]
     y = [bottom,top]
@@ -119,7 +119,7 @@ def method_colorspace_threshold(image, x_range, y_range, z_range, colorspace, sa
         return mask_matrix
 
 
-def method_mostcommon_color_kmeans(image, k, thresh, colorspace, save, generate_measures):
+def method_mostcommon_color_kmeans(image, k, thresh, colorspace, save, generate_measures=False):
     """
     methods uses kmeans to find most common colors on the photo, based on this information
     it's filtering that color considering it a background.
@@ -130,7 +130,6 @@ def method_mostcommon_color_kmeans(image, k, thresh, colorspace, save, generate_
     save - indicates whether you want to save masks or not
 
     """
-
 
     if generate_measures:
         name = image
