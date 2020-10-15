@@ -146,6 +146,53 @@ def get_hsv_concat_hist_blur(img, mask=None):
     cv2.normalize(hist, hist, norm_type=cv2.NORM_L2, alpha=1.)
     return hist
 
+def get_h_multi_hist(img, mask=None):
+    ''' Paramenters: img (color image)
+        Returns: return several hist concat result of splitting the image '''
+
+    hsv = cv2.cvtColor(img, cv2.COLOR_BGR2HSV)
+
+    (h, w) = hsv.shape[:2]
+    tile1 = hsv[0:h//2, 0:w//2]
+    tile2 = hsv[0:h//2, w//2:-1]
+    tile3 = hsv[h//2:-1, 0:w//2]
+    tile4 = hsv[h//2:-1, w//2:-1]
+
+    hist_tile1 = cv2.calcHist([tile1],[0],mask,[256],[0,256])
+    hist_tile2 = cv2.calcHist([tile2],[0],mask,[256],[0,256])
+    hist_tile3 = cv2.calcHist([tile3],[0],mask,[256],[0,256])
+    hist_tile4 = cv2.calcHist([tile4],[0],mask,[256],[0,256])
+
+    hist = np.concatenate((hist_tile1, hist_tile2, hist_tile3, hist_tile4))
+    cv2.normalize(hist, hist, norm_type=cv2.NORM_L2, alpha=1.)
+    return hist
+
+def get_hs_multi_hist(img, mask=None):
+    ''' Paramenters: img (color image)
+        Returns: return several hist concat result of splitting the image '''
+
+    hsv = cv2.cvtColor(img, cv2.COLOR_BGR2HSV)
+
+    (h, w) = hsv.shape[:2]
+    tile1 = hsv[0:h//2, 0:w//2]
+    tile2 = hsv[0:h//2, w//2:-1]
+    tile3 = hsv[h//2:-1, 0:w//2]
+    tile4 = hsv[h//2:-1, w//2:-1]
+
+    hist_tile1 = cv2.calcHist([tile1],[0],mask,[256],[0,256])
+    hist_tile2 = cv2.calcHist([tile2],[0],mask,[256],[0,256])
+    hist_tile3 = cv2.calcHist([tile3],[0],mask,[256],[0,256])
+    hist_tile4 = cv2.calcHist([tile4],[0],mask,[256],[0,256])
+
+    hist = np.concatenate((hist_tile1, cv2.calcHist([tile1],[1],mask,[256],[0,256]), \
+        hist_tile2, cv2.calcHist([tile2],[1],mask,[256],[0,256]), hist_tile3, 
+        cv2.calcHist([tile3],[1],mask,[256],[0,256]), hist_tile4, 
+        cv2.calcHist([tile4],[1],mask,[256],[0,256])))
+
+    cv2.normalize(hist, hist, norm_type=cv2.NORM_L2, alpha=1.)
+    return hist
+
+
 def get_hs_concat_hist_st(img, mask=None):
     ''' Paramenters: img (color image)
         Returns: numpyarray with the 3 HSV histograms concatenated '''
@@ -176,5 +223,7 @@ def get_descriptors(img, mask=None):
     descript_dic['hs_concat_hist_st'] = get_hs_concat_hist_st(img, mask)
     descript_dic['hs_concat_hist_blur'] = get_hs_concat_hist_blur(img, mask)
     descript_dic['hsv_concat_hist_blur'] = get_hsv_concat_hist_blur(img, mask)
+    descript_dic['h_multi_hist'] = get_h_multi_hist(img, mask)
+    descript_dic['hs_multi_hist'] = get_hs_multi_hist(img, mask)
     return descript_dic
 
