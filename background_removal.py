@@ -35,6 +35,19 @@ def show_image(im):
 
 
 def method_similar_channels(image, thresh, save, generate_measures=False):
+
+    """
+    image - image as an array
+    thresh - threshold as int
+    save - if you want to save masks
+    generate measures - generates measures if set to True instead of a mask. If you want to generate measures
+                        against ground truth as image provide name of the imagea without extension
+
+    return: mask or measures( if generate_measures = True)
+
+
+    """
+
     # read image into matrix.
     if generate_measures:
         name = image
@@ -87,6 +100,11 @@ def method_colorspace_threshold(image, x_range, y_range, z_range, colorspace, sa
     bottom - top has value from 0-255
 
     colorspace = 'bgr','rgb','hsv','ycrcb','cielab','
+
+    generate measures - generates measures if set to True instead of a mask. If you want to generate measures
+                        against ground truth as image provide name of the imagea without extension
+
+    return: mask or measures( if generate_measures = True)
     """
     masks_measures = []
     if generate_measures:
@@ -128,7 +146,10 @@ def method_mostcommon_color_kmeans(image, k, thresh, colorspace, save, generate_
     thresh - provides number that creates the filter of colors close to the most common one
     colorspcae - allows to choose from different colorspaces bgr to hsv
     save - indicates whether you want to save masks or not
+    generate measures - generates measures if set to True instead of a mask. If you want to generate measures
+                        against ground truth as image provide name of the imagea without extension
 
+    return: mask or measures( if generate_measures = True)
     """
 
     if generate_measures:
@@ -254,7 +275,7 @@ def method_canny(image, save, generate_measures=False):
 
 def get_all_methods_per_photo(im, display, save):
     """
-    Return a dictionary with all available measures. Keys are:
+    Return a dictionary with all available measures. Keys are in example:
     * 'msc': method_similar_channels
     * 'mst': method_colorspace_thresholding(image, range x[a,b], range y[c,d], range z[e,f], colorspace)
     """
@@ -280,6 +301,13 @@ def get_all_methods_per_photo(im, display, save):
 
 
 def get_all_measures_all_photos(save):
+    """
+    calculates all measures for all photos and saving masks in folders if necessary
+    Methods to run are defined in get_all_methods_per_photo
+
+    csv file is saved in the folde above your project
+
+    """
     files_img = glob.glob('../datasets/qsd2_w1/*.png')
 
     all_measures = []
