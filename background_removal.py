@@ -173,7 +173,9 @@ def get_all_methods_per_photo(im, display, save):
     """
 
     measures = {'msc': method_similar_channels(im, 30, save=save, generate_measures=True),
-                'mst': method_colorspace_threshold(im, [0, 120], [0, 255], [0, 255], 'bgr', save=save,
+                'mst_bgr': method_colorspace_threshold(im, [124, 255], [0, 255], [0, 255], 'bgr', save=save,
+                                                   generate_measures=True),
+                'mst_hsv': method_colorspace_threshold(im, [0, 255], [0, 255], [140, 255], 'hsv', save=save,
                                                    generate_measures=True),
                 'msk_bgr': method_mostcommon_color_kmeans(im, 5, 30, colorspace='bgr', save=save,
                                                           generate_measures=True),
