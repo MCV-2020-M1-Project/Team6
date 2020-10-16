@@ -4,8 +4,10 @@ import cv2
 import argparse
 import cbir
 import descriptor_lib as desc
+import background_removal as bg 
 import os, os.path
 import csv
+import numpy as np
 
 
 #calculates mean of all mapk values for particular method
@@ -24,7 +26,7 @@ def main(queryset_name, descriptor, measure, k, similarity, background):
     # reading images from queryset
     path = ['..','datasets', queryset_name]
     qs_number = len([name for name in os.listdir(os.path.join(*path)) \
-        if not '.pkl' in name])
+        if '.jpg' in name])
 
     #Get a dic with the descriptors of the images in the query set
     qs_descript_list = []
@@ -35,13 +37,14 @@ def main(queryset_name, descriptor, measure, k, similarity, background):
             print('Error reading image', os.path.join(*path))
             quit()
 
+        mask = None
         if background:
             # placeholder call to bg removal 
-            # img = bg.remove_bg(img) or whatever
-            print('Placeholder for background_removal(query_img) call')
-            pass
+            mask = bg.method_similar_channels_jc(img, 30)
+            # mask = bg.method_canny(img, False)
+        mask = mask.astype(np.uint8)
 
-        qs_descript_list.append(desc.get_descriptors(img)) #get a dic with the descriptors for the img
+        qs_descript_list.append(desc.get_descriptors(img, mask)) #get a dic with the descriptors for the img
 
     predicted = [] #order predicted list of images for the method used on particular image
     #Get the results for every image in the query dataset
@@ -76,8 +79,8 @@ if __name__ == "__main__":
 
     parser = argparse.ArgumentParser()
     parser.add_argument('-q', required=True, type=str, help='query set')
-    parser.add_argument('-d', required=False, default='bgr_concat_hist', type=str)
-    parser.add_argument('-m', required=False, default='corr', type=str)
+    parser.add_argument('-d', required=False, default='hs_multi_hist', type=str)
+    parser.add_argument('-m', required=False, default='x2', type=str)
     parser.add_argument('-k', required=False, default=5, type=int)
     parser.add_argument('-b', '--background', required=False, default=False, action='store_true')
     parser.add_argument('-s', '--similarity', required=False, default=False, action='store_true')

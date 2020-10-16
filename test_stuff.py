@@ -5,7 +5,18 @@ import descriptor_lib as descs
 import distance_metrics_lib as dists
 import os, time
 import random as rnd
+import background_removal as bg
 
+def test_mask():
+    our = bg.method_similar_channels_jc(im2, 30)
+    his = bg.method_similar_channels(im2, 30, False)
+
+    cv2.imshow('our',cv2.resize(our*255, (256, 256)))
+    cv2.imshow('his',cv2.resize(his, (256, 256)))
+    cv2.waitKey(0)
+
+
+    print(np.sum(abs(our - his)))
 
 def same_hist():
     rnd_img = im1.copy()
@@ -24,6 +35,8 @@ def same_hist():
 def distances():
 
     cv2.imshow('img1',cv2.resize(im1, (256, 256)))
+
+    
     cv2.imshow('img2',cv2.resize(im2, (256, 256)))
 
 
@@ -52,8 +65,9 @@ if __name__ == '__main__':
     query_img = '00004.jpg'
 
     im1 = cv2.imread(os.path.join(*BD_path, 'BBDD', BD_img), 1)
-    im2 = cv2.imread(os.path.join(*BD_path, 'qsd1_w1', query_img), 1)
+    im2 = cv2.imread(os.path.join(*BD_path, 'qsd2_w1', query_img), 1)
 
     # distances()
     # visualize_hist()
-    same_hist()
+    # same_hist()
+    test_mask()

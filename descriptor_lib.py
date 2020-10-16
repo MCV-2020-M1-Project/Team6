@@ -158,10 +158,18 @@ def get_h_multi_hist(img, mask=None):
     tile3 = hsv[h//2:-1, 0:w//2]
     tile4 = hsv[h//2:-1, w//2:-1]
 
-    hist_tile1 = cv2.calcHist([tile1],[0],mask,[256],[0,256])
-    hist_tile2 = cv2.calcHist([tile2],[0],mask,[256],[0,256])
-    hist_tile3 = cv2.calcHist([tile3],[0],mask,[256],[0,256])
-    hist_tile4 = cv2.calcHist([tile4],[0],mask,[256],[0,256])
+    mask1 = mask2 = mask3 = mask4 = None
+    if mask is not None:
+        mask1 = mask[0:h//2, 0:w//2]
+        mask2 = mask[0:h//2, w//2:-1]
+        mask3 = mask[h//2:-1, 0:w//2]
+        mask4 = mask[h//2:-1, w//2:-1]
+
+
+    hist_tile1 = cv2.calcHist([tile1],[0],mask1,[256],[0,256])
+    hist_tile2 = cv2.calcHist([tile2],[0],mask2,[256],[0,256])
+    hist_tile3 = cv2.calcHist([tile3],[0],mask3,[256],[0,256])
+    hist_tile4 = cv2.calcHist([tile4],[0],mask4,[256],[0,256])
 
     hist = np.concatenate((hist_tile1, hist_tile2, hist_tile3, hist_tile4))
     cv2.normalize(hist, hist, norm_type=cv2.NORM_L2, alpha=1.)
@@ -179,15 +187,25 @@ def get_hs_multi_hist(img, mask=None):
     tile3 = hsv[h//2:-1, 0:w//2]
     tile4 = hsv[h//2:-1, w//2:-1]
 
-    hist_tile1 = cv2.calcHist([tile1],[0],mask,[256],[0,256])
-    hist_tile2 = cv2.calcHist([tile2],[0],mask,[256],[0,256])
-    hist_tile3 = cv2.calcHist([tile3],[0],mask,[256],[0,256])
-    hist_tile4 = cv2.calcHist([tile4],[0],mask,[256],[0,256])
+    mask1 = mask2 = mask3 = mask4 = None
+    if mask is not None:
+        mask1 = mask[0:h//2, 0:w//2]
+        mask2 = mask[0:h//2, w//2:-1]
+        mask3 = mask[h//2:-1, 0:w//2]
+        mask4 = mask[h//2:-1, w//2:-1]
 
-    hist = np.concatenate((hist_tile1, cv2.calcHist([tile1],[1],mask,[256],[0,256]), \
-        hist_tile2, cv2.calcHist([tile2],[1],mask,[256],[0,256]), hist_tile3, 
-        cv2.calcHist([tile3],[1],mask,[256],[0,256]), hist_tile4, 
-        cv2.calcHist([tile4],[1],mask,[256],[0,256])))
+    hist_h_tile1 = cv2.calcHist([tile1],[0],mask1,[256],[0,256])
+    hist_h_tile2 = cv2.calcHist([tile2],[0],mask2,[256],[0,256])
+    hist_h_tile3 = cv2.calcHist([tile3],[0],mask3,[256],[0,256])
+    hist_h_tile4 = cv2.calcHist([tile4],[0],mask4,[256],[0,256])
+
+    hist_s_tile1 = cv2.calcHist([tile1],[1],mask1,[256],[0,256])
+    hist_s_tile2 = cv2.calcHist([tile2],[1],mask2,[256],[0,256])
+    hist_s_tile3 = cv2.calcHist([tile3],[1],mask3,[256],[0,256])
+    hist_s_tile4 = cv2.calcHist([tile4],[1],mask4,[256],[0,256])
+
+    hist = np.concatenate((hist_h_tile1, hist_h_tile2, hist_h_tile3, hist_h_tile4, \
+        hist_s_tile1, hist_s_tile2, hist_s_tile3, hist_s_tile4))
 
     cv2.normalize(hist, hist, norm_type=cv2.NORM_L2, alpha=1.)
     return hist
@@ -214,16 +232,16 @@ def get_descriptors(img, mask=None):
         Returns: descript_dic (dictionary with descriptors names as keys) '''
 
     descript_dic = {}
-    descript_dic['gray_hist'] = get_gray_hist(img, mask)
-    descript_dic['bgr_concat_hist'] = get_bgr_concat_hist(img, mask)
-    descript_dic['cielab_concat_hist'] = get_bgr_concat_hist(img, mask)
-    descript_dic['ycrcb_concat_hist'] = get_ycrcb_concat_hist(img, mask)
+    # descript_dic['gray_hist'] = get_gray_hist(img, mask)
+    # descript_dic['bgr_concat_hist'] = get_bgr_concat_hist(img, mask)
+    # descript_dic['cielab_concat_hist'] = get_bgr_concat_hist(img, mask)
+    # descript_dic['ycrcb_concat_hist'] = get_ycrcb_concat_hist(img, mask)
     descript_dic['hsv_concat_hist'] = get_hsv_concat_hist(img, mask)
     descript_dic['hs_concat_hist'] = get_hs_concat_hist(img, mask)
-    descript_dic['hs_concat_hist_st'] = get_hs_concat_hist_st(img, mask)
-    descript_dic['hs_concat_hist_blur'] = get_hs_concat_hist_blur(img, mask)
-    descript_dic['hsv_concat_hist_blur'] = get_hsv_concat_hist_blur(img, mask)
-    descript_dic['h_multi_hist'] = get_h_multi_hist(img, mask)
+    # descript_dic['hs_concat_hist_st'] = get_hs_concat_hist_st(img, mask)
+    # descript_dic['hs_concat_hist_blur'] = get_hs_concat_hist_blur(img, mask)
+    # descript_dic['hsv_concat_hist_blur'] = get_hsv_concat_hist_blur(img, mask)
+    # descript_dic['h_multi_hist'] = get_h_multi_hist(img, mask)
     descript_dic['hs_multi_hist'] = get_hs_multi_hist(img, mask)
     return descript_dic
 

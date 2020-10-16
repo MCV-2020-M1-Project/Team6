@@ -5,7 +5,7 @@ import numpy as np
 from evaluation import mask_evaluation
 import glob
 import pickle as pkl
-import method_kmeans_colour
+# import method_kmeans_colour
 
 
 def get_measures(name, mask):
@@ -32,6 +32,31 @@ def show_image(im):
     cv.imshow('y', y)
     cv.imshow('z', z)
     print(x)
+
+
+def method_similar_channels_jc(image, thresh):
+
+    """
+    image - image as an array
+    thresh - threshold as int
+
+    """
+
+    img = image.astype(float)
+
+    # get image properties.
+    h, w = np.shape(img)[:2]
+
+    b_g = abs(img[:, :, 0] - img[:, :, 1])
+    b_r = abs(img[:, :, 0] - img[:, :, 2])
+    g_r = abs(img[:, :, 1] - img[:, :, 2])
+
+    mask_matrix = np.uint8(b_g < thresh) * np.uint8(b_r < thresh) * np.uint8(g_r < thresh)
+    mask_matrix *= np.uint8(img[:, :, 0] > 100) * np.uint8(img[:, :, 1] > 100) * np.uint8(img[:, :, 2] > 100) 
+
+
+    mask_matrix = 1 - mask_matrix
+    return mask_matrix.astype(np.uint8)
 
 
 def method_similar_channels(image, thresh, save, generate_measures=False):

@@ -148,13 +148,14 @@ def get_all_measures(a, b, display=False):
     * 'hell_ker': Hellinger kernel (similarity)
     * 'corr': correlation
     '''
-    measures = {'eucl': get_euclidean_distance(a, b),
+    measures = {
+                # 'eucl': get_euclidean_distance(a, b),
                 'l1': get_l1_distance(a, b),
                 'x2': get_x2_distance(a, b),
-                'h_inter': get_hist_intersection(a, b),
-                'hell_ker': get_hellinger_kernel(a, b), 
-                'corr': get_correlation(a, b),
-                'chisq': get_chisq_distance(a, b)
+                # 'h_inter': get_hist_intersection(a, b),
+                # 'hell_ker': get_hellinger_kernel(a, b), 
+                # 'corr': get_correlation(a, b),
+                # 'chisq': get_chisq_distance(a, b)
                 }
 
     if display:
