@@ -89,5 +89,5 @@ def get_most_common_color(image, k):
     return bgr,hsv_values[0]
 
 
-get_most_common_color(cv2.imread('../datasets/qsd2_w1/00002.jpg'),5)
+#get_most_common_color(cv2.imread('../datasets/qsd2_w1/00002.jpg'),5)
 

@@ -5,7 +5,29 @@ import numpy as np
 from evaluation import mask_evaluation
 import glob
 import pickle as pkl
-# import method_kmeans_colour
+#import method_kmeans_colour
+
+def save_masks(removal_method, input_folder, output_folder):
+    output_path = f'../datasets/masks_extracted/{output_folder}'
+
+    if not os.path.exists(output_path):
+        os.makedirs(output_path)
+
+    files_img = glob.glob(f'../datasets/{input_folder}/*.jpg')
+
+    images = [cv.imread(i) for i in files_img]
+
+    if removal_method == "canny":
+        for i in range(len(images)):
+            cv.imwrite(os.path.join(output_path, f"{i:05d}.png"),
+                       method_canny(images[i]))
+
+    if removal_method == "similar_channel":
+        for i in range(len(images)):
+            cv.imwrite(os.path.join(output_path, f"{i:05d}.png"),
+                       method_similar_channels_jc(images[i], 30))
+
+    print(f"[INFO] Masks successfully stored in '{output_folder}'")
 
 
 def get_measures(name, mask):
@@ -59,7 +81,7 @@ def method_similar_channels_jc(image, thresh):
     return mask_matrix.astype(np.uint8)
 
 
-def method_similar_channels(image, thresh, save, generate_measures=False):
+def method_similar_channels(image, thresh, save=False, generate_measures=False):
 
     """
     image - image as an array
@@ -116,7 +138,7 @@ def method_similar_channels(image, thresh, save, generate_measures=False):
         return mask_matrix
 
 
-def method_colorspace_threshold(image, x_range, y_range, z_range, colorspace, save, generate_measures=False):
+def method_colorspace_threshold(image, x_range, y_range, z_range, colorspace, save=False, generate_measures=False):
     """
     x = [bottom,top]
     y = [bottom,top]
@@ -162,7 +184,7 @@ def method_colorspace_threshold(image, x_range, y_range, z_range, colorspace, sa
         return mask_matrix
 
 
-def method_mostcommon_color_kmeans(image, k, thresh, colorspace, save, generate_measures=False):
+def method_mostcommon_color_kmeans(image, k, thresh, colorspace, save=False, generate_measures=False):
     """
     methods uses kmeans to find most common colors on the photo, based on this information
     it's filtering that color considering it a background.
@@ -257,7 +279,7 @@ def method_watershed(image, save, generate_measures=False):
         return mask
 
 
-def method_canny(image, save, generate_measures=False):
+def method_canny(image, save=False, generate_measures=False):
     """
     Calculate background limits regarding painting by detecting lines belonging to painting's frame.
     Assumes a smooth background.
@@ -298,7 +320,7 @@ def method_canny(image, save, generate_measures=False):
         return mask
 
 
-def get_all_methods_per_photo(im, display, save):
+def get_all_methods_per_photo(im, display, save=False):
     """
     Return a dictionary with all available measures. Keys are in example:
     * 'msc': method_similar_channels
@@ -325,7 +347,7 @@ def get_all_methods_per_photo(im, display, save):
     return measures
 
 
-def get_all_measures_all_photos(save):
+def get_all_measures_all_photos(save=False):
     """
     calculates all measures for all photos and saving masks in folders if necessary
     Methods to run are defined in get_all_methods_per_photo
@@ -359,7 +381,7 @@ def get_all_measures_all_photos(save):
     return all_measures
 
 
-def main(name, display, save):
+def main(name, display, save=False):
     if not os.path.exists('../datasets/masks_extracted/'):
         os.makedirs('../datasets/masks_extracted/')
 
