@@ -21,11 +21,18 @@ def save_masks(removal_method, input_folder, output_folder):
         for i in range(len(images)):
             cv.imwrite(os.path.join(output_path, f"{i:05d}.png"),
                        method_canny(images[i]))
-
-    if removal_method == "similar_channel":
+    elif removal_method == "similar_channel":
         for i in range(len(images)):
             cv.imwrite(os.path.join(output_path, f"{i:05d}.png"),
-                       method_similar_channels_jc(images[i], 30))
+                       method_similar_channels_jc(images[i], 30))    
+    elif removal_method == 'hsv_thresh':
+        for i in range(len(images)):
+            cv.imwrite(os.path.join(output_path, f"{i:05d}.png"),
+                       255*method_colorspace_threshold(images[i], [0, 255], [100, 255], [0, 150], 'hsv'))
+    else:
+        av_methods = 'canny', 'similar_channel', 'hsv_thresh'
+        print('Unknown removal method (available methods', ', '.join(av_methods), ')')
+        return
 
     print(f"[INFO] Masks successfully stored in '{output_folder}'")
 
@@ -181,7 +188,7 @@ def method_colorspace_threshold(image, x_range, y_range, z_range, colorspace, sa
     if generate_measures:
         return get_measures(name, mask_matrix)
     else:
-        return mask_matrix
+        return np.uint8(mask_matrix / 255)
 
 
 def method_mostcommon_color_kmeans(image, k, thresh, colorspace, save=False, generate_measures=False):
@@ -276,7 +283,7 @@ def method_watershed(image, save, generate_measures=False):
     if generate_measures:
         return get_measures(image, mask)
     else:
-        return mask
+        return mask.astype(np.uint8)
 
 
 def method_canny(image, save=False, generate_measures=False):
@@ -317,7 +324,7 @@ def method_canny(image, save=False, generate_measures=False):
     if generate_measures:
         return get_measures(image, mask)
     else:
-        return mask
+        return mask.astype(np.uint8)
 
 
 def get_all_methods_per_photo(im, display, save=False):
