@@ -145,6 +145,37 @@ def method_similar_channels(image, thresh, save=False, generate_measures=False):
         return mask_matrix
 
 
+def morph_threshold_mask(im):
+    struct_el = cv.getStructuringElement(cv.MORPH_RECT, (5, 1))
+    im_morph = cv.morphologyEx(im, cv.MORPH_CLOSE, struct_el)
+
+    struct_el = cv.getStructuringElement(cv.MORPH_RECT, (1, 5))
+    im_morph = cv.morphologyEx(im_morph, cv.MORPH_CLOSE, struct_el)
+
+    # struct_el = cv.getStructuringElement(cv.MORPH_RECT, (5, 5))
+    # im_morph = cv.morphologyEx(im_morph, cv.MORPH_ERODE, struct_el)
+
+
+    contours, _ = cv.findContours(im_morph, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_NONE)
+
+    rect = 0, 0, 0, 0
+    max_area = 0
+    for cont in contours:
+        x, y ,w ,h = cv.boundingRect(cont)
+        if w*h > max_area:
+            rect = x, y, w, h
+            max_area = w*h
+    
+    mask_im = np.zeros_like(im)
+    mask_im[rect[1]:rect[1]+rect[3], rect[0]:rect[0]+rect[2]] = 1
+
+    return mask_im
+
+
+def hsv_thresh_method(im):
+    return morph_threshold_mask(method_colorspace_threshold(im.copy(), [0, 255], [100, 255], [0, 200], 'hsv'))
+ 
+
 def method_colorspace_threshold(image, x_range, y_range, z_range, colorspace, save=False, generate_measures=False):
     """
     x = [bottom,top]
@@ -170,6 +201,7 @@ def method_colorspace_threshold(image, x_range, y_range, z_range, colorspace, sa
     if colorspace == 'bgr': pass
     if colorspace == 'rgb': img = cv.cvtColor(img, cv.COLOR_BGR2RGB, img)
     if colorspace == 'hsv': img = cv.cvtColor(img, cv.COLOR_BGR2HSV, img)
+    if colorspace == 'hls': img = cv.cvtColor(img, cv.COLOR_BGR2HLS, img)
     if colorspace == 'ycrcb': img = cv.cvtColor(img, cv.COLOR_BGR2YCrCb, img)
     if colorspace == 'cielab': img = cv.cvtColor(img, cv.COLOR_BGR2Lab, img)
     if colorspace == 'xyz': img = cv.cvtColor(img, cv.COLOR_BGR2XYZ, img)
@@ -179,7 +211,7 @@ def method_colorspace_threshold(image, x_range, y_range, z_range, colorspace, sa
     lower = np.array([x_range[0], y_range[0], z_range[0]])
     upper = np.array([x_range[1], y_range[1], z_range[1]])
     mask_matrix = cv.inRange(img, lower, upper)
-
+    
     if save:
         if not os.path.exists(f'../datasets/masks_extracted/mst_{colorspace}/'):
             os.makedirs(f'../datasets/masks_extracted/mst_{colorspace}/')
