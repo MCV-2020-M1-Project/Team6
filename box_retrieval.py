@@ -1,5 +1,6 @@
 import cv2 as cv
 import glob
+import pickle as pkl
 import numpy as np
 
 
@@ -79,12 +80,12 @@ def check_box_fill(im, x, y, w, h):
     count_whites = cv.countNonZero(crop_img)
     bright_count = np.sum(np.array(crop_img) >= 1)
     count_all = crop_img.size
-    print(count_whites, bright_count, count_all, count_whites / count_all)
+    # print(count_whites, bright_count, count_all, count_whites / count_all)
 
     return crop_img, count_whites, count_whites / count_all
 
 
-def fillied_boxes(im):
+def filled_boxes(im):
     kernel = np.ones((10, 10), np.uint8)
     # im = cv.morphologyEx(im, cv.MORPH_OPEN, kernel)
 
@@ -92,17 +93,19 @@ def fillied_boxes(im):
 
     s_in = cv.morphologyEx(s, cv.MORPH_OPEN, kernel)
     _, s_out = cv.threshold(s_in, 30, 250, cv.THRESH_BINARY_INV)
+    # s_out = cv.adaptiveThreshold(s_in,255,cv.ADAPTIVE_THRESH_GAUSSIAN_C,cv.THRESH_BINARY,7,5)
     shape = im.shape
-    h = shape[0] // 30 #50
+
+    h = shape[0] // 50  # 50
     w = shape[1] // 5
+
     kernel_eliminate_small = np.ones((h, w), np.uint8)
     s_out = cv.morphologyEx(s_out, cv.MORPH_OPEN, kernel_eliminate_small)
     s_out = cv.morphologyEx(s_out, cv.MORPH_CLOSE, kernel_eliminate_small)
 
-    threshold = 100
-    #im = cv.cvtColor(im.astype(np.uint8), cv.COLOR_BGR2RGB)
-    kernel_gradient = np.ones((2, 2), np.uint8)
-    #gradient = cv.morphologyEx(s_out, cv.MORPH_GRADIENT, kernel_gradient)
+    # threshold = 100
+    # kernel_gradient = np.ones((2, 2), np.uint8)
+    # gradient = cv.morphologyEx(s_out, cv.MORPH_GRADIENT, kernel_gradient)
     # canny_output = cv.Canny(s_out, threshold, threshold * 2)
     contours, _ = cv.findContours(s_out, cv.RETR_LIST, cv.CHAIN_APPROX_SIMPLE)
 
@@ -110,50 +113,108 @@ def fillied_boxes(im):
     max_fill = 0
     location = [0, 0, 0, 0]
 
+    rect = s_out.copy()
+
     for i, frame in enumerate(contours):
         a = np.array([tuple(x[0]) for x in frame])
         x, y, w, h = cv.boundingRect(a)
-        crop_img, count_whites, fill = check_box_fill(s_out.copy(), x, y, w, h)
-        s_out = cv.rectangle(s_out, (x, y), (x + w, y + h), (255, 0, 0), 5)
+        crop_img, count_whites, fill = check_box_fill(s_out, x, y, w, h)
+        rect = cv.rectangle(rect, (x, y), (x + w, y + h), (255, 0, 0), 5)
         im = cv.rectangle(im, (x, y), (x + w, y + h), (0, 0, 255), 5)
-        print(f'imsize={crop_img.size}, minimal={s_out.size / 70}')
+        # print(f'imsize={crop_img.size}, minimal={s_out.size / 70}')
 
-        if crop_img.size > (s_out.size / 70) and h < w:
+        if crop_img.size > (s_out.size/70) and h < w:
             if fill > max_fill:
-                if (fill == max_fill and crop_img.size > max_size) or max_fill == 0:
                     max_fill = fill
-                    location = [x, y, w, h]
+                    location = [x, y, x+w, y+h]
 
     shape = im.shape
     box_img = np.zeros(shape=(shape[0], shape[1]))
-    print('location', location)
-    box_img[location[1]:location[1] + location[3], location[0]:location[0] + location[2]] = 255
-    cv.imwrite('../datasets/masks_extracted/rectangles.png', s_out)
+    # print('location', location)
+    box_img[location[1]:location[3], location[0]:location[2]] = 255
+    cv.imwrite('../datasets/masks_extracted/rectangles.png', rect)
 
-    return box_img, s_out,im
+    return s_in,box_img, rect, im, location
 
 
-# test()
+def main():
+    # name = '00002'
 
-name = '00002'
+    # im = cv.imread(f'../datasets/qsd1_w2/{name}.jpg')
 
-im = cv.imread(f'../datasets/qsd1_w2/{name}.jpg')
+    # output,rect = fillied_boxes(im)
+    # cv.imwrite(f'../datasets/masks_extracted/{name}_box_mask.png',output)
+    # cv.imwrite(f'../datasets/masks_extracted/{name}_rect.png', rect)
+    # quit()
+    input_files = glob.glob(r'../datasets/qsd1_w2/*.jpg')
+    text_boxes_list = create_list_boxes()
+    overall_score = []
+    score = 0
 
-# output,rect = fillied_boxes(im)
-# cv.imwrite(f'../datasets/masks_extracted/{name}_box_mask.png',output)
-# cv.imwrite(f'../datasets/masks_extracted/{name}_rect.png', rect)
-# quit()
-input_files = glob.glob(r'../datasets/qsd1_w2/*.jpg')
+    for index,image in enumerate(input_files):
+        im = cv.imread(image)
+        name = image[-9:-4]
+        print(name)
+        s_in,output, rect, img_marked, location = filled_boxes(im)
+        cv.imwrite(f'../datasets/masks_extracted/boxes/{name}_im.png', img_marked)
+        cv.imwrite(f'../datasets/masks_extracted/boxes/{name}_box_mask.png', output)
+        cv.imwrite(f'../datasets/masks_extracted/boxes/{name}_rect.png', rect)
+        cv.imwrite(f'../datasets/masks_extracted/boxes/{name}_sat_morph.png', s_in)
 
-for image in input_files:
-    im = cv.imread(image)
-    name = image[-9:-4]
-    print(name)
-    output, rect,img_marked = fillied_boxes(im)
-    cv.imwrite(f'../datasets/masks_extracted/boxes/{name}_im.png', img_marked)
-    cv.imwrite(f'../datasets/masks_extracted/boxes/{name}_box_mask.png', output)
-    cv.imwrite(f'../datasets/masks_extracted/boxes/{name}_rect.png', rect)
+        iou = verify_boxes(location,text_boxes_list[index])
+        overall_score.append(iou)
 
-# cv.imshow('boxes',fillied_boxes(im))
-# cv.resizeWindow('boxes', 900,600)
-# cv.waitKey()
+    for i in overall_score:
+        score = score + i
+
+    print("overal=",score/len(overall_score))
+
+        # cv.imshow('boxes',fillied_boxes(im))
+    # cv.resizeWindow('boxes', 900,600)
+
+
+def create_list_boxes():
+    with open(r'..\datasets\qsd1_w2\text_boxes.pkl', 'rb') as file:
+        text_boxes_corr = pkl.load(file)
+
+    text_boxes_correspondance = []
+
+    for box in text_boxes_corr:
+        x_min, y_min = 10000000000, 10000000000
+        x_max, y_max = 0, 0
+        for corr in box[0]:
+            # print('corr=',corr)
+            if corr[0] < x_min: x_min = corr[0]
+            if corr[1] < y_min: y_min = corr[1]
+            if corr[0] > x_max: x_max = corr[0]
+            if corr[1] > y_max: y_max = corr[1]
+        # print('min,max=', x_min, y_min, x_max, y_max)
+        text_boxes_correspondance.append([x_min, y_min, x_max, y_max])
+
+    # print(text_boxes_correspondance)
+    return text_boxes_correspondance
+
+
+def verify_boxes(location, correspondance):
+
+    # determine the (x, y)-coordinates of the intersection rectangle
+    xA = max(location[0], correspondance[0])
+    yA = max(location[1], correspondance[1])
+    xB = min(location[2], correspondance[2])
+    yB = min(location[3], correspondance[3])
+    # compute the area of intersection rectangle
+    interArea = max(0, xB - xA + 1) * max(0, yB - yA + 1)
+    # compute the area of both the prediction and ground-truth
+    # rectangles
+    boxAArea = (location[2] - location[0] + 1) * (location[3] - location[1] + 1)
+    boxBArea = (correspondance[2] - correspondance[0] + 1) * (correspondance[3] - correspondance[1] + 1)
+    # compute the intersection over union by taking the intersection
+    # area and dividing it by the sum of prediction + ground-truth
+    # areas - the interesection area
+    iou = interArea / float(boxAArea + boxBArea - interArea)
+    # return the intersection over union value
+    print(iou)
+    return iou
+
+
+main()
