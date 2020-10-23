@@ -4,28 +4,6 @@ import pickle as pkl
 import numpy as np
 
 
-def __extract_biggest_connected_component(mask: np.ndarray) -> np.ndarray:
-    """
-    Extracts the biggest connected component from a mask (0 and 1's).
-    Args:
-        img: 2D array of type np.float32 representing the mask
-
-    Returns : 2D array, mask with 1 in the biggest component and 0 outside
-    """
-    # extract all connected components
-    num_labels, labels_im = cv.connectedComponents(mask.astype(np.uint8))
-
-    # we find and return only the biggest one
-    max_val, max_idx = 0, -1
-    for i in range(1, num_labels):
-        area = np.sum(labels_im == i)
-        if area > max_val:
-            max_val = area
-            max_idx = i
-
-    return (labels_im == max_idx).astype(float)
-
-
 def test():
     files_img = glob.glob(f'../datasets/qsd1_w2/*.jpg')
 
@@ -109,7 +87,6 @@ def filled_boxes(im):
     # canny_output = cv.Canny(s_out, threshold, threshold * 2)
     contours, _ = cv.findContours(s_out, cv.RETR_LIST, cv.CHAIN_APPROX_SIMPLE)
 
-    max_size = 0
     max_fill = 0
     location = [0, 0, 0, 0]
 
@@ -123,51 +100,47 @@ def filled_boxes(im):
         im = cv.rectangle(im, (x, y), (x + w, y + h), (0, 0, 255), 5)
         # print(f'imsize={crop_img.size}, minimal={s_out.size / 70}')
 
-        if crop_img.size > (s_out.size/70) and h < w:
+        if crop_img.size > (s_out.size / 70) and h < w:
             if fill > max_fill:
-                    max_fill = fill
-                    location = [x, y, x+w, y+h]
+                max_fill = fill
+                location = [x, y, x + w, y + h]
 
     shape = im.shape
     box_img = np.zeros(shape=(shape[0], shape[1]))
-    # print('location', location)
     box_img[location[1]:location[3], location[0]:location[2]] = 255
     cv.imwrite('../datasets/masks_extracted/rectangles.png', rect)
 
-    return s_in,box_img, rect, im, location
+    return s_in, box_img, rect, im, location
 
 
 def main():
-    # name = '00002'
-
-    # im = cv.imread(f'../datasets/qsd1_w2/{name}.jpg')
-
-    # output,rect = fillied_boxes(im)
-    # cv.imwrite(f'../datasets/masks_extracted/{name}_box_mask.png',output)
-    # cv.imwrite(f'../datasets/masks_extracted/{name}_rect.png', rect)
-    # quit()
     input_files = glob.glob(r'../datasets/qsd1_w2/*.jpg')
     text_boxes_list = create_list_boxes()
     overall_score = []
     score = 0
+    all_boxes = []
 
-    for index,image in enumerate(input_files):
+    for index, image in enumerate(input_files):
         im = cv.imread(image)
         name = image[-9:-4]
         print(name)
-        s_in,output, rect, img_marked, location = filled_boxes(im)
+        s_in, output, rect, img_marked, location = filled_boxes(im)
         cv.imwrite(f'../datasets/masks_extracted/boxes/{name}_im.png', img_marked)
         cv.imwrite(f'../datasets/masks_extracted/boxes/{name}_box_mask.png', output)
         cv.imwrite(f'../datasets/masks_extracted/boxes/{name}_rect.png', rect)
         cv.imwrite(f'../datasets/masks_extracted/boxes/{name}_sat_morph.png', s_in)
 
-        iou = verify_boxes(location,text_boxes_list[index])
+        iou = verify_boxes(location, text_boxes_list[index])
         overall_score.append(iou)
+        all_boxes.append(location)
 
     for i in overall_score:
         score = score + i
 
-    print("overal=",score/len(overall_score))
+    print("overal=", score / len(overall_score))
+
+    with open(r'pkl_data\text_boxes.pkl', 'wb') as file:
+        pkl.dump(obj=all_boxes, file=file)
 
         # cv.imshow('boxes',fillied_boxes(im))
     # cv.resizeWindow('boxes', 900,600)
@@ -183,7 +156,6 @@ def create_list_boxes():
         x_min, y_min = 10000000000, 10000000000
         x_max, y_max = 0, 0
         for corr in box[0]:
-            # print('corr=',corr)
             if corr[0] < x_min: x_min = corr[0]
             if corr[1] < y_min: y_min = corr[1]
             if corr[0] > x_max: x_max = corr[0]
@@ -196,7 +168,6 @@ def create_list_boxes():
 
 
 def verify_boxes(location, correspondance):
-
     # determine the (x, y)-coordinates of the intersection rectangle
     xA = max(location[0], correspondance[0])
     yA = max(location[1], correspondance[1])
