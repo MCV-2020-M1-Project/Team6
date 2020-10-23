@@ -7,13 +7,14 @@ import glob
 import pickle as pkl
 #import method_kmeans_colour
 
-def save_masks(removal_method, input_folder, output_folder):
-    output_path = f'../datasets/masks_extracted/{output_folder}'
+def save_masks(removal_method, input_folder):
+    output_path = f'../datasets/masks_extracted/{removal_method}'
 
     if not os.path.exists(output_path):
         os.makedirs(output_path)
 
     files_img = glob.glob(f'../datasets/{input_folder}/*.jpg')
+    print(files_img)
 
     images = [cv.imread(i) for i in files_img]
 
@@ -34,7 +35,7 @@ def save_masks(removal_method, input_folder, output_folder):
         print('Unknown removal method (available methods', ', '.join(av_methods), ')')
         return
 
-    print(f"[INFO] Masks successfully stored in '{output_folder}'")
+    print(f"[INFO] Masks successfully stored in '{output_path}'")
 
 
 def get_measures(name, mask):
@@ -85,7 +86,7 @@ def method_similar_channels_jc(image, thresh):
 
 
     mask_matrix = 1 - mask_matrix
-    return mask_matrix.astype(np.uint8)
+    return mask_matrix.astype(np.uint8)*255
 
 
 def method_similar_channels(image, thresh, save=False, generate_measures=False):
