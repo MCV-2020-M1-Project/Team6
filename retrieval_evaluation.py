@@ -37,20 +37,25 @@ def main(queryset_name, descriptor, measure, k, similarity, background):
             print('Error reading image', os.path.join(*path))
             quit()
 
-        mask = None
         if background:
             # placeholder call to bg removal 
-            mask = bg.method_similar_channels_jc(img, 30)
-            # mask = bg.method_canny(img, False)
-        mask = mask.astype(np.uint8)
+            # masks = bg.method_similar_channels_jc(img, 30) # cahgne variable name to masks for multiple mask
+            masks = bg.method_canny(img)
 
-        qs_descript_list.append(desc.get_descriptors(img, mask)) #get a dic with the descriptors for the img
+        # qs_descript_list.append(desc.get_descriptors(img, mask)) #get a dic with the descriptors for the img
+        qs_descript_list.append([desc.get_descriptors(img, mask[0]) for mask in masks]) # n pictures per paiting
 
     predicted = [] #order predicted list of images for the method used on particular image
     #Get the results for every image in the query dataset
+    # for query_descript_dic in qs_descript_list:
+    #     predicted.append(cbir.get_histogram_top_k_similar( \
+    #         query_descript_dic[descriptor], db_descript_list, descriptor, measure, similarity, k))
+
+    # n images per painting
     for query_descript_dic in qs_descript_list:
-        predicted.append(cbir.get_histogram_top_k_similar( \
-            query_descript_dic[descriptor], db_descript_list, descriptor, measure, similarity, k))
+        predicted.append([cbir.get_histogram_top_k_similar(p[descriptor], \
+                        db_descript_list, descriptor, measure, similarity, k) \
+                        for p in query_descript_dic][0]) # IF GT FORMAT IS AS IN W1, REMEMBER TO INDEX THE FIRST (AND ONLY) ELEMENT OF THIS COMPRESSED LIST
 
     #Read grandtruth from .pkl
     actual = [] #just a list of all images from the query folder - not ordered
