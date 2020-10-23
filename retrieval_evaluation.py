@@ -8,6 +8,7 @@ import background_removal as bg
 import os, os.path
 import csv
 import numpy as np
+import box_retrieval
 
 
 #calculates mean of all mapk values for particular method
@@ -42,9 +43,11 @@ def main(queryset_name, descriptor, measure, k, similarity, background):
             # placeholder call to bg removal 
             mask = bg.method_similar_channels_jc(img, 30)
             # mask = bg.method_canny(img, False)
-        #mask = mask.astype(np.uint8)
+            v1 = v2 = (0,0)
+            img = img[v1[0]:v2[0], v1[1]:v2[1]]
 
-        qs_descript_list.append(desc.get_descriptors(img, mask)) #get a dic with the descriptors for the img
+        box_mask = (1 - box_retrieval.filled_boxes(img)[1])
+        qs_descript_list.append(desc.get_descriptors(img, box_mask)) #get a dic with the descriptors for the img
 
     predicted = [] #order predicted list of images for the method used on particular image
     #Get the results for every image in the query dataset

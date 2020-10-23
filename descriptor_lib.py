@@ -152,7 +152,9 @@ def get_tile_partition(img, r, c, mask=None):
     (h, w) = img.shape[:2]
     padd_w = w//c
     padd_h = h//r
-    return [img[padd_h*i:padd_h*(i+1), padd_w*j:padd_w*(j+1)] \
+    return [img[padd_h*i:padd_h*(i+1), padd_w*j:padd_w*(j+1)]  
+            for i in range(r) for j in range(c)], \
+            [mask[padd_h*i:padd_h*(i+1), padd_w*j:padd_w*(j+1)] \
             for i in range(r) for j in range(c)]
 
 
@@ -161,11 +163,18 @@ def get_hs_multi_hist(tiles, mask=None):
         Returns: return several hist concat result of splitting the image '''
 
     hist = []
-    for tile in tiles:
-        hsv_tile = cv2.cvtColor(tile, cv2.COLOR_BGR2HSV)
-        hist.append(cv2.calcHist([hsv_tile],[0],mask,[256],[0,256]))
-        hist.append(cv2.calcHist([hsv_tile],[1],mask,[256],[0,256]))
-    hist = np.concatenate(hist)
+    if(mask is None):
+        for tile in tiles:
+            hsv_tile = cv2.cvtColor(tile, cv2.COLOR_BGR2HSV)
+            hist.append(cv2.calcHist([hsv_tile],[0],mask,[256],[0,256]))
+            hist.append(cv2.calcHist([hsv_tile],[1],mask,[256],[0,256]))
+        hist = np.concatenate(hist)
+    else:
+        for i in range(len(tiles)):
+            hsv_tile = cv2.cvtColor(tiles[i], cv2.COLOR_BGR2HSV)
+            hist.append(cv2.calcHist([hsv_tile],[0],mask[i],[256],[0,256]))
+            hist.append(cv2.calcHist([hsv_tile],[1],mask[i],[256],[0,256]))
+        hist = np.concatenate(hist)
 
     cv2.normalize(hist, hist, norm_type=cv2.NORM_L2, alpha=1.)
     return hist
@@ -175,49 +184,38 @@ def get_hs_multiresolution_hist(img, mask=None):
     hsv = cv2.cvtColor(img, cv2.COLOR_BGR2HSV)
 
     # #get hist of the whole img
-    hist = get_hs_multi_hist([img])
+    hist = get_hs_multi_hist([img], mask)
 
     #get hist of the 2x2 partition
-    tiles = get_tile_partition(img,2,2) 
-    hist = np.concatenate((hist, get_hs_multi_hist(tiles)))
+    tiles, mask = get_tile_partition(img,2,2,mask) 
+    hist = np.concatenate((hist, get_hs_multi_hist(tiles,mask)))
 
     #get hist of the 4x4 partition
-    tiles = get_tile_partition(img,4,4)
-    hist = np.concatenate((hist, get_hs_multi_hist(tiles)))
+    tiles, mask = get_tile_partition(img,4,4,mask)
+    hist = np.concatenate((hist, get_hs_multi_hist(tiles,mask)))
 
     return hist
 
-def get_hsv_multiresolution_hist(img, mask=None):
 
-    hsv = cv2.cvtColor(img, cv2.COLOR_BGR2HSV)
+def get_multiresolution_hist(img, mask=None):
+
     #get hist of the whole img
-    hist = get_bgr_concat_hist(hsv)
+    hist = get_bgr_concat_hist(img, mask)
 
     #get hist of the 2x2 partition
-    tiles = get_tile_partition(hsv,2,2)
-    tiles_hist = [get_bgr_concat_hist(tile) for tile in tiles]
+    tiles, mask = get_tile_partition(img,2,2,mask)
+    if mask is None:
+        tiles_hist = [get_bgr_concat_hist(tiles[i], None) for i in range(len(tiles))]
+    else:
+        tiles_hist = [get_bgr_concat_hist(tiles[i], mask[i]) for i in range(len(tiles))]
     hist = np.concatenate((hist, *tiles_hist))
 
     #get hist of the 4x4 partition
-    tiles = get_tile_partition(hsv,4,4)
-    tiles_hist = [get_bgr_concat_hist(tile) for tile in tiles]
-    hist = np.concatenate((hist, *tiles_hist))
-
-    return hist
-
-def get_bgr_multiresolution_hist(img, mask=None):
-
-    # #get hist of the whole img
-    hist = get_bgr_concat_hist(img)
-
-    #get hist of the 2x2 partition
-    tiles = get_tile_partition(img,2,2)
-    tiles_hist = [get_bgr_concat_hist(tile) for tile in tiles]
-    hist = np.concatenate((hist, *tiles_hist))
-
-    #get hist of the 4x4 partition
-    tiles = get_tile_partition(img,4,4)
-    tiles_hist = [get_bgr_concat_hist(tile) for tile in tiles]
+    tiles, mask = get_tile_partition(img,4,4, mask)
+    if mask is None:
+        tiles_hist = [get_bgr_concat_hist(tiles[i], None) for i in range(len(tiles))]
+    else:
+        tiles_hist = [get_bgr_concat_hist(tiles[i], mask[i]) for i in range(len(tiles))]
     hist = np.concatenate((hist, *tiles_hist))
 
     return hist
@@ -253,9 +251,9 @@ def get_descriptors(img, mask=None):
     # descript_dic['hs_concat_hist_blur'] = get_hs_concat_hist_blur(img, mask)
     # descript_dic['hsv_concat_hist_blur'] = get_hsv_concat_hist_blur(img, mask)
     # descript_dic['h_multi_hist'] = get_h_multi_hist(img, mask)
-    tiles = get_tile_partition(img,2,2)
-    descript_dic['hs_multi_hist'] = get_hs_multi_hist(tiles, mask)
-    descript_dic['hs_multiresolution'] = get_hs_multiresolution_hist(img)
-    descript_dic['bgr_multiresolution'] = get_bgr_multiresolution_hist(img)
-    descript_dic['hsv_multiresolution'] = get_hsv_multiresolution_hist(img)
+    tiles, mask_tiled = get_tile_partition(img,2,2, mask)
+    descript_dic['hs_multi_hist'] = get_hs_multi_hist(tiles, mask_tiled)
+    descript_dic['hs_multiresolution'] = get_hs_multiresolution_hist(img, mask)
+    descript_dic['bgr_multiresolution'] = get_multiresolution_hist(img, mask)
+    descript_dic['hsv_multiresolution'] = get_multiresolution_hist(cv2.cvtColor(img, cv2.COLOR_BGR2HSV), mask)
     return descript_dic
