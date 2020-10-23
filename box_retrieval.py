@@ -111,7 +111,7 @@ def filled_boxes(im):
     box_img[location[1]:location[3], location[0]:location[2]] = 1
     cv.imwrite('../datasets/masks_extracted/rectangles.png', rect)
 
-    return s_in, box_img, rect, im, location
+    return s_in, box_img.astype(np.uint8), rect, im, location
 
 
 def main():
