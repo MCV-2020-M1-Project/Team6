@@ -16,7 +16,7 @@ def calculate_mean_all(mapk_values):
     mean_of_mapk=sum(mapk_values)/len(mapk_values)
     return mean_of_mapk
 
-def main(queryset_name, descriptor, measure, k, similarity, background):
+def main(queryset_name, descriptor, measure, k, similarity, background, bbox):
 
     #Read descriptors of the museum db from .pkl
     path = ['pkl_data','bd_descriptors.pkl'] #for making the path system independent
@@ -38,22 +38,38 @@ def main(queryset_name, descriptor, measure, k, similarity, background):
             print('Error reading image', os.path.join(*path))
             quit()
 
-        mask = None
+        paintings = []
         if background:
             # placeholder call to bg removal 
-            mask = bg.method_similar_channels_jc(img, 30)
-            # mask = bg.method_canny(img, False)
-            v1 = v2 = (0,0)
-            img = img[v1[0]:v2[0], v1[1]:v2[1]]
+            # mask = bg.method_similar_channels_jc(img, 30)
+            masks = bg.method_canny(img)
 
-        box_mask = (1 - box_retrieval.filled_boxes(img)[1])
-        qs_descript_list.append(desc.get_descriptors(img, box_mask)) #get a dic with the descriptors for the img
+            for mask in masks:
+                v1 = mask[1][:1]
+                v2 = mask[1][2:]
+                paintings.append(img[v1[0]:v2[0], v1[1]:v2[1]])
+        else:
+            paintings = [img]
+
+        if bbox:
+            box_masks = [(1 - box_retrieval.filled_boxes(painting)[1]) for painting in paintings]
+            qs_descript_list.append([desc.get_descriptors(paintings[i], box_masks[i]) \
+             for i in range(len(paintings))]) # get a dic with the descriptors for the n pictures per painting
+        else:
+            qs_descript_list.append([desc.get_descriptors(paintings[i], None) \
+             for i in range(len(paintings))]) # get a dic with the descriptors for the n pictures per painting
 
     predicted = [] #order predicted list of images for the method used on particular image
     #Get the results for every image in the query dataset
+    # for query_descript_dic in qs_descript_list:
+    #     predicted.append(cbir.get_histogram_top_k_similar( \
+    #         query_descript_dic[descriptor], db_descript_list, descriptor, measure, similarity, k))
+
+    # n images per painting
     for query_descript_dic in qs_descript_list:
-        predicted.append(cbir.get_histogram_top_k_similar( \
-            query_descript_dic[descriptor], db_descript_list, descriptor, measure, similarity, k))
+        predicted.append([cbir.get_histogram_top_k_similar(p[descriptor], \
+                        db_descript_list, descriptor, measure, similarity, k) \
+                        for p in query_descript_dic][0]) # IF GT FORMAT IS AS IN W1, REMEMBER TO INDEX THE FIRST (AND ONLY) ELEMENT OF THIS COMPRESSED LIST
 
     #Read grandtruth from .pkl
     actual = [] #just a list of all images from the query folder - not ordered
@@ -87,7 +103,8 @@ if __name__ == "__main__":
     parser.add_argument('-k', required=False, default=5, type=int)
     parser.add_argument('-b', '--background', required=False, default=False, action='store_true')
     parser.add_argument('-s', '--similarity', required=False, default=False, action='store_true')
-
+    parser.add_argument('-bb', '--bbox', required=False, default=False, action='store_true')
+  
     args = parser.parse_args()
 
-    main(args.q, args.d, args.m, args.k, args.similarity, args.background)
+    main(args.q, args.d, args.m, args.k, args.similarity, args.background, args.bbox)

@@ -150,7 +150,7 @@ def main():
 
 
 def create_list_boxes():
-    path = ['datasets', 'qsd1_w2', 'text_boxes.pkl']
+    path = ['..','datasets', 'qsd1_w2', 'text_boxes.pkl']
     with open(os.path.join(*path), 'rb') as file:
         text_boxes_corr = pkl.load(file)
 
@@ -192,4 +192,4 @@ def verify_boxes(location, correspondance):
     return iou
 
 
-main()
+# main()
