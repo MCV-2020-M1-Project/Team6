@@ -5,3 +5,4 @@ __pycache__/
 #Ignore pickles and csv
 *.pkl
 *.csv
+*.pyc
