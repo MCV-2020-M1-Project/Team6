@@ -42,7 +42,7 @@ def main(queryset_name, descriptor, measure, k, similarity, background):
             # placeholder call to bg removal 
             mask = bg.method_similar_channels_jc(img, 30)
             # mask = bg.method_canny(img, False)
-        mask = mask.astype(np.uint8)
+        #mask = mask.astype(np.uint8)
 
         qs_descript_list.append(desc.get_descriptors(img, mask)) #get a dic with the descriptors for the img
 

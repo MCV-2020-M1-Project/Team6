@@ -93,13 +93,14 @@ def display_comparison(a, b):
 
     distances = get_all_measures(a, b)
     # measures
-    text = ['Euclidean: ' + str(round(distances['eucl'], 2)),
+    text = [
+            #'Euclidean: ' + str(round(distances['eucl'], 2)),
             'X2: ' + str(round(distances['x2'], 2)),
-            'L1: ' + str(round(distances['l1'], 2)), 
-            'Hist intersection: ' + str(round(distances['h_inter'], 2)),
-            'Hellinger Kernel: ' + str(round(distances['hell_ker'], 2)),
-            'Correlation: ' + str(round(distances['corr'], 2)),
-            'Chi square:' + str(round(distances['chisq'], 2))
+            'L1: ' + str(round(distances['l1'], 2)) 
+            # 'Hist intersection: ' + str(round(distances['h_inter'], 2)),
+            # 'Hellinger Kernel: ' + str(round(distances['hell_ker'], 2)),
+            # 'Correlation: ' + str(round(distances['corr'], 2)),
+            # 'Chi square:' + str(round(distances['chisq'], 2))
         ]
 
     # Draw histograms
