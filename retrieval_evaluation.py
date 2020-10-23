@@ -45,7 +45,7 @@ def main(queryset_name, descriptor, measure, k, similarity, background, bbox):
             masks = bg.method_canny(img)
 
             for mask in masks:
-                v1 = mask[1][:1]
+                v1 = mask[1][:2]
                 v2 = mask[1][2:]
                 paintings.append(img[v1[0]:v2[0], v1[1]:v2[1]])
         else:
@@ -69,7 +69,7 @@ def main(queryset_name, descriptor, measure, k, similarity, background, bbox):
     for query_descript_dic in qs_descript_list:
         predicted.append([cbir.get_histogram_top_k_similar(p[descriptor], \
                         db_descript_list, descriptor, measure, similarity, k) \
-                        for p in query_descript_dic][0]) # IF GT FORMAT IS AS IN W1, REMEMBER TO INDEX THE FIRST (AND ONLY) ELEMENT OF THIS COMPRESSED LIST
+                        for p in query_descript_dic]) # IF GT FORMAT IS AS IN W1, REMEMBER TO INDEX THE FIRST (AND ONLY) ELEMENT OF THIS COMPRESSED LIST
 
     #Read grandtruth from .pkl
     actual = [] #just a list of all images from the query folder - not ordered
