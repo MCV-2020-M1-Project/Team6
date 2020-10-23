@@ -6,3 +6,6 @@ __pycache__/
 *.pkl
 *.csv
 *.pyc
+
+# Ignore development scripts
+test_stuff.py
