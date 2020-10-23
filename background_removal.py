@@ -7,13 +7,14 @@ import glob
 import pickle as pkl
 #import method_kmeans_colour
 
-def save_masks(removal_method, input_folder, output_folder):
-    output_path = f'../datasets/masks_extracted/{output_folder}'
+def save_masks(removal_method, input_folder):
+    output_path = f'../datasets/masks_extracted/{removal_method}'
 
     if not os.path.exists(output_path):
         os.makedirs(output_path)
 
     files_img = glob.glob(f'../datasets/{input_folder}/*.jpg')
+    print(files_img)
 
     images = [cv.imread(i) for i in files_img]
 
@@ -21,13 +22,20 @@ def save_masks(removal_method, input_folder, output_folder):
         for i in range(len(images)):
             cv.imwrite(os.path.join(output_path, f"{i:05d}.png"),
                        method_canny(images[i]))
-
-    if removal_method == "similar_channel":
+    elif removal_method == "similar_channel":
         for i in range(len(images)):
             cv.imwrite(os.path.join(output_path, f"{i:05d}.png"),
-                       method_similar_channels_jc(images[i], 30))
+                       method_similar_channels_jc(images[i], 30))    
+    elif removal_method == 'hsv_thresh':
+        for i in range(len(images)):
+            cv.imwrite(os.path.join(output_path, f"{i:05d}.png"),
+                       255*method_colorspace_threshold(images[i], [0, 255], [100, 255], [0, 150], 'hsv'))
+    else:
+        av_methods = 'canny', 'similar_channel', 'hsv_thresh'
+        print('Unknown removal method (available methods', ', '.join(av_methods), ')')
+        return
 
-    print(f"[INFO] Masks successfully stored in '{output_folder}'")
+    print(f"[INFO] Masks successfully stored in '{output_path}'")
 
 
 def get_measures(name, mask):
@@ -78,7 +86,7 @@ def method_similar_channels_jc(image, thresh):
 
 
     mask_matrix = 1 - mask_matrix
-    return mask_matrix.astype(np.uint8)
+    return mask_matrix.astype(np.uint8)*255
 
 
 def method_similar_channels(image, thresh, save=False, generate_measures=False):
@@ -138,6 +146,37 @@ def method_similar_channels(image, thresh, save=False, generate_measures=False):
         return mask_matrix
 
 
+def morph_threshold_mask(im):
+    struct_el = cv.getStructuringElement(cv.MORPH_RECT, (5, 1))
+    im_morph = cv.morphologyEx(im, cv.MORPH_CLOSE, struct_el)
+
+    struct_el = cv.getStructuringElement(cv.MORPH_RECT, (1, 5))
+    im_morph = cv.morphologyEx(im_morph, cv.MORPH_CLOSE, struct_el)
+
+    # struct_el = cv.getStructuringElement(cv.MORPH_RECT, (5, 5))
+    # im_morph = cv.morphologyEx(im_morph, cv.MORPH_ERODE, struct_el)
+
+
+    contours, _ = cv.findContours(im_morph, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_NONE)
+
+    rect = 0, 0, 0, 0
+    max_area = 0
+    for cont in contours:
+        x, y ,w ,h = cv.boundingRect(cont)
+        if w*h > max_area:
+            rect = x, y, w, h
+            max_area = w*h
+    
+    mask_im = np.zeros_like(im)
+    mask_im[rect[1]:rect[1]+rect[3], rect[0]:rect[0]+rect[2]] = 1
+
+    return mask_im
+
+
+def hsv_thresh_method(im):
+    return morph_threshold_mask(method_colorspace_threshold(im.copy(), [0, 255], [100, 255], [0, 200], 'hsv'))
+ 
+
 def method_colorspace_threshold(image, x_range, y_range, z_range, colorspace, save=False, generate_measures=False):
     """
     x = [bottom,top]
@@ -163,6 +202,7 @@ def method_colorspace_threshold(image, x_range, y_range, z_range, colorspace, sa
     if colorspace == 'bgr': pass
     if colorspace == 'rgb': img = cv.cvtColor(img, cv.COLOR_BGR2RGB, img)
     if colorspace == 'hsv': img = cv.cvtColor(img, cv.COLOR_BGR2HSV, img)
+    if colorspace == 'hls': img = cv.cvtColor(img, cv.COLOR_BGR2HLS, img)
     if colorspace == 'ycrcb': img = cv.cvtColor(img, cv.COLOR_BGR2YCrCb, img)
     if colorspace == 'cielab': img = cv.cvtColor(img, cv.COLOR_BGR2Lab, img)
     if colorspace == 'xyz': img = cv.cvtColor(img, cv.COLOR_BGR2XYZ, img)
@@ -172,7 +212,7 @@ def method_colorspace_threshold(image, x_range, y_range, z_range, colorspace, sa
     lower = np.array([x_range[0], y_range[0], z_range[0]])
     upper = np.array([x_range[1], y_range[1], z_range[1]])
     mask_matrix = cv.inRange(img, lower, upper)
-
+    
     if save:
         if not os.path.exists(f'../datasets/masks_extracted/mst_{colorspace}/'):
             os.makedirs(f'../datasets/masks_extracted/mst_{colorspace}/')
@@ -181,7 +221,7 @@ def method_colorspace_threshold(image, x_range, y_range, z_range, colorspace, sa
     if generate_measures:
         return get_measures(name, mask_matrix)
     else:
-        return mask_matrix
+        return np.uint8(mask_matrix / 255)
 
 
 def method_mostcommon_color_kmeans(image, k, thresh, colorspace, save=False, generate_measures=False):
@@ -276,7 +316,7 @@ def method_watershed(image, save, generate_measures=False):
     if generate_measures:
         return get_measures(image, mask)
     else:
-        return mask
+        return mask.astype(np.uint8)
 
 
 def method_canny(image, save=False, generate_measures=False):
@@ -317,7 +357,7 @@ def method_canny(image, save=False, generate_measures=False):
     if generate_measures:
         return get_measures(image, mask)
     else:
-        return mask
+        return mask.astype(np.uint8)
 
 
 def get_all_methods_per_photo(im, display, save=False):

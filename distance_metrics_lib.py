@@ -5,7 +5,7 @@ Metrics implemented:
 
 * Euclidean distance
 * L1 distance
-* X² distance
+* X2 distance
 * Histogram intersection (similarity)
 * Hellinger kernel (similarity)
 
@@ -144,7 +144,7 @@ def get_all_measures(a, b, display=False):
     Return a dictionary with all available measures. Keys are:
     * 'eucl': Euclidean distance
     * 'l1': L1 distance
-    * 'x2': X² distance
+    * 'x2': X2 distance
     * 'h_inter': Histogram intersection (similarity)
     * 'hell_ker': Hellinger kernel (similarity)
     * 'corr': correlation
