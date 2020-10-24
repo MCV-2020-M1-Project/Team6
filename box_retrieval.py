@@ -69,9 +69,14 @@ def filled_boxes(im):
 
     h, s, v = cv.split(cv.cvtColor(im, cv.COLOR_BGR2HSV))
 
+    # cv.imshow('sat',s)
+    # cv.waitKey()
+
     s_in = cv.morphologyEx(s, cv.MORPH_OPEN, kernel)
     _, s_out = cv.threshold(s_in, 30, 250, cv.THRESH_BINARY_INV)
-    # s_out = cv.adaptiveThreshold(s_in,255,cv.ADAPTIVE_THRESH_GAUSSIAN_C,cv.THRESH_BINARY,7,5)
+    # blur = cv.GaussianBlur(s_in, (5, 5), 0)
+    #ret3, s_out = cv.threshold(blur, 0, 255, cv.THRESH_BINARY_INV + cv.THRESH_OTSU)
+    # s_out = cv.adaptiveThreshold(s_in,100,cv.ADAPTIVE_THRESH_GAUSSIAN_C,cv.THRESH_BINARY,5,31)
     shape = im.shape
 
     h = shape[0] // 50  # 50
