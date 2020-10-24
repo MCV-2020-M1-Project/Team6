@@ -247,7 +247,10 @@ def get_hs_concat_hist_st(img, mask=None):
 def get_descriptors(img, mask=None):
     ''' Paramenters: img (color image)
         Returns: descript_dic (dictionary with descriptors names as keys) '''
-
+    # if mask is not None:
+    #     cv2.imshow('img', img)
+    #     cv2.imshow('mask', 255*mask)
+    #     cv2.waitKey(0)
     descript_dic = {}
     # descript_dic['gray_hist'] = get_gray_hist(img, mask)
     # descript_dic['bgr_concat_hist'] = get_bgr_concat_hist(img, mask)

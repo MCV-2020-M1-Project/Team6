@@ -31,6 +31,9 @@ def main(queryset_name, descriptor, measure, k, similarity, background, bbox):
 
     #Get a dic with the descriptors of the images in the query set
     qs_descript_list = []
+
+    bbox_list = []
+
     for i in range(qs_number):
         path = ['..','datasets', queryset_name, '{:05d}'.format(i)+'.jpg']
         img = cv2.imread(os.path.join(*path), cv2.IMREAD_COLOR)
@@ -55,10 +58,33 @@ def main(queryset_name, descriptor, measure, k, similarity, background, bbox):
             box_masks = [(1 - box_retrieval.filled_boxes(painting)[1]) for painting in paintings]
             qs_descript_list.append([desc.get_descriptors(paintings[i], box_masks[i]) \
              for i in range(len(paintings))]) # get a dic with the descriptors for the n pictures per painting
+
+            temp_list = []
+            for i in range(len(paintings)):
+                bbox_loc =  box_retrieval.filled_boxes(paintings[i])[4]
+                mask_loc = masks[i][1] if background else (0, 0)
+
+                bbox_loc[0] += mask_loc[0]
+                bbox_loc[1] += mask_loc[1]
+                bbox_loc[2] += mask_loc[0]
+                bbox_loc[3] += mask_loc[1]
+                
+                if i > 0: # maybe check this in the future
+                    if temp_list[0][0] + temp_list[0][1] < bbox_loc[0]+bbox_loc[1]:
+                        temp_list.append(bbox_loc)
+                    else:
+                        temp_list.insert(0, bbox_loc)
+                else:
+                    temp_list.append(bbox_loc)
+            
+            bbox_list.append(temp_list)
         else:
             qs_descript_list.append([desc.get_descriptors(paintings[i], None) \
              for i in range(len(paintings))]) # get a dic with the descriptors for the n pictures per painting
-
+    
+    with open('text_boxes.pkl', 'wb') as f:
+        pkl.dump(bbox_list, f)
+    
     predicted = [] #order predicted list of images for the method used on particular image
     #Get the results for every image in the query dataset
     # for query_descript_dic in qs_descript_list:
@@ -69,7 +95,7 @@ def main(queryset_name, descriptor, measure, k, similarity, background, bbox):
     for query_descript_dic in qs_descript_list:
         predicted.append([cbir.get_histogram_top_k_similar(p[descriptor], \
                         db_descript_list, descriptor, measure, similarity, k) \
-                        for p in query_descript_dic]) # IF GT FORMAT IS AS IN W1, REMEMBER TO INDEX THE FIRST (AND ONLY) ELEMENT OF THIS COMPRESSED LIST
+                        for p in query_descript_dic][0]) # IF GT FORMAT IS AS IN W1, REMEMBER TO INDEX THE FIRST (AND ONLY) ELEMENT OF THIS COMPRESSED LIST
 
     #Read grandtruth from .pkl
     actual = [] #just a list of all images from the query folder - not ordered

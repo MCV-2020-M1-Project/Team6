@@ -174,7 +174,7 @@ def morph_threshold_mask(im):
 
 
 
-def hsv_thresh_method(im):
+def hsv_thresh_method(im, generate_measures=False):
     return morph_threshold_mask(method_colorspace_threshold(im.copy(), [0, 255], [100, 255], [0, 200], 'hsv'))
  
 
@@ -368,17 +368,19 @@ def get_all_methods_per_photo(im, display, save=False):
     * 'mst': method_colorspace_thresholding(image, range x[a,b], range y[c,d], range z[e,f], colorspace)
     """
 
-    measures = {'msc': method_similar_channels(im, 30, save=save, generate_measures=True),
-                'mst_bgr': method_colorspace_threshold(im, [124, 255], [0, 255], [0, 255], 'bgr', save=save,
-                                                   generate_measures=True),
-                'mst_hsv': method_colorspace_threshold(im, [0, 255], [0, 255], [140, 255], 'hsv', save=save,
-                                                   generate_measures=True),
-                'msk_bgr': method_mostcommon_color_kmeans(im, 5, 30, colorspace='bgr', save=save,
-                                                          generate_measures=True),
-                'msk_hsv': method_mostcommon_color_kmeans(im, 5, 10, colorspace='hsv', save=save,
-                                                          generate_measures=True),
-                'canny': method_canny(im, save=save, generate_measures=True),
-                'watershed': method_watershed(im, save=save, generate_measures=True)
+    measures = {
+                # 'msc': method_similar_channels(im, 30, save=save, generate_measures=True),
+                # 'mst_bgr': method_colorspace_threshold(im, [124, 255], [0, 255], [0, 255], 'bgr', save=save,
+                #                                    generate_measures=True),
+                # 'mst_hsv': method_colorspace_threshold(im, [0, 255], [0, 255], [140, 255], 'hsv', save=save,
+                #                                    generate_measures=True),
+                # 'msk_bgr': method_mostcommon_color_kmeans(im, 5, 30, colorspace='bgr', save=save,
+                #                                           generate_measures=True),
+                # 'msk_hsv': method_mostcommon_color_kmeans(im, 5, 10, colorspace='hsv', save=save,
+                #                                           generate_measures=True),
+                # 'canny': method_canny(im, save=save, generate_measures=True),
+                # 'watershed': method_watershed(im, save=save, generate_measures=True),
+                'hsv_morph': hsv_thresh_method(im)
                 }
     # methods returning masks and should return measures
     if display:
