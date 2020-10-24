@@ -164,13 +164,14 @@ def morph_threshold_mask(im):
     for cont in contours:
         x, y ,w ,h = cv.boundingRect(cont)
         if w*h > max_area:
-            rect = x, y, w, h
+            rect = x, y, x + w, y + h
             max_area = w*h
     
     mask_im = np.zeros_like(im)
-    mask_im[rect[1]:rect[1]+rect[3], rect[0]:rect[0]+rect[2]] = 1
+    mask_im[rect[1]:rect[3], rect[0]:rect[2]] = 1
 
-    return mask_im
+    return [(mask_im, rect)] # mask retrieval functions should always return lists now
+
 
 
 def hsv_thresh_method(im):
@@ -347,7 +348,7 @@ def method_canny(image, save=False, generate_measures=False):
     left_frame = np.nonzero(sum_col_values)[0][0]
     right_frame = (canny.shape[1]-1) - np.nonzero(sum_col_values[::-1])[0][0]
 
-    mask[upper_frame:lower_frame, left_frame:right_frame] = 255  # pixels corresponding to detected painting area
+    mask[upper_frame:lower_frame, left_frame:right_frame] = 1  # pixels corresponding to detected painting area
 
     if save:
         if not os.path.exists(f'../datasets/masks_extracted/canny/'):
@@ -357,7 +358,7 @@ def method_canny(image, save=False, generate_measures=False):
     if generate_measures:
         return get_measures(image, mask)
     else:
-        return mask.astype(np.uint8)
+        return [(mask.astype(np.uint8), (upper_frame, left_frame, lower_frame, right_frame))]
 
 
 def get_all_methods_per_photo(im, display, save=False):
