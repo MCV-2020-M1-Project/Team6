@@ -2,9 +2,10 @@ import cv2 as cv
 import glob
 import pickle as pkl
 import numpy as np
-
+import os, os.path
 
 def test():
+
     files_img = glob.glob(f'../datasets/qsd1_w2/*.jpg')
 
     # im = cv.cvtColor(im,cv.COLOR_BGR2GRAY)
@@ -112,14 +113,15 @@ def filled_boxes(im):
 
     shape = im.shape
     box_img = np.zeros(shape=(shape[0], shape[1]))
-    box_img[location[1]:location[3], location[0]:location[2]] = 255
+    box_img[location[1]:location[3], location[0]:location[2]] = 1
     cv.imwrite('../datasets/masks_extracted/rectangles.png', rect)
 
-    return s_in, box_img, rect, im, location
+    return s_in, box_img.astype(np.uint8), rect, im, location
 
 
 def main():
-    input_files = glob.glob(r'../datasets/qsd1_w2/*.jpg')
+    path = ['..','datasets', 'qsd1_w2', '*.jpg']
+    input_files = glob.glob(os.path.join(*path))
     text_boxes_list = create_list_boxes()
     overall_score = []
     score = 0
@@ -144,7 +146,8 @@ def main():
 
     print("overal=", score / len(overall_score))
 
-    with open(r'pkl_data\text_boxes.pkl', 'wb') as file:
+    path = ['.pkl_data', 'text_boxes.pkl']
+    with open(os.path.join(*path), 'wb') as file:
         pkl.dump(obj=all_boxes, file=file)
 
         # cv.imshow('boxes',fillied_boxes(im))
@@ -152,7 +155,8 @@ def main():
 
 
 def create_list_boxes():
-    with open(r'..\datasets\qsd1_w2\text_boxes.pkl', 'rb') as file:
+    path = ['..','datasets', 'qsd1_w2', 'text_boxes.pkl']
+    with open(os.path.join(*path), 'rb') as file:
         text_boxes_corr = pkl.load(file)
 
     text_boxes_correspondance = []
@@ -193,4 +197,4 @@ def verify_boxes(location, correspondance):
     return iou
 
 
-main()
+# main()
