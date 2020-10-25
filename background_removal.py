@@ -170,11 +170,11 @@ def morph_threshold_mask(im):
     mask_im = np.zeros_like(im)
     mask_im[rect[1]:rect[3], rect[0]:rect[2]] = 1
 
-    return [(mask_im, rect)] # mask retrieval functions should always return lists now
+    return mask_im,[rect] # mask retrieval functions should always return lists now
 
 
 
-def hsv_thresh_method(im, generate_measures=False):
+def hsv_thresh_method(im):
     return morph_threshold_mask(method_colorspace_threshold(im.copy(), [0, 255], [100, 255], [0, 200], 'hsv'))
  
 

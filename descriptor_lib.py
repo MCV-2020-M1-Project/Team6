@@ -224,8 +224,7 @@ def get_multiresolution_hist(img, mask=None):
         tiles_hist = [get_bgr_concat_hist(tiles[i], None) for i in range(len(tiles))]
     else:
         mask_tiled = get_tile_partition(mask,4,4)
-        tiles_hist = [get_bgr_concat_hist(tiles[i], mask_tiled[i]) for i in range(len(tiles))
-        
+        tiles_hist = [get_bgr_concat_hist(tiles[i], mask_tiled[i]) for i in range(len(tiles))]
     hist = np.concatenate((hist, *tiles_hist))
 
     return hist

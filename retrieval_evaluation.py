@@ -46,7 +46,8 @@ def main(queryset_name, descriptor, measure, k, similarity, background, bbox):
             # placeholder call to bg removal 
             # mask = bg.method_similar_channels_jc(img, 30)
             # masks = bg.method_canny(img)
-            masks = bg.method_canny_multiple_paintings(img)[1]
+            masks = bg.hsv_thresh_method(img)[1]
+            # masks = bg.method_canny_multiple_paintings(img)[1]
             # print(len(masks), masks)
             for mask in masks:
                 v1 = mask[:2] # remember it was [1][2:] before
