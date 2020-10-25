@@ -145,8 +145,47 @@ def method_similar_channels(image, thresh, save=False, generate_measures=False):
     else:
         return mask_matrix
 
+def decide_best_rect(contour_list, n=1):
 
-def morph_threshold_mask(im):
+    all_rects = []
+    rects = []
+    if n == 1:
+        rect = 0, 0, 0, 0
+        max_area = 0
+        for cont in contour_list:
+            x, y ,w ,h = cv.boundingRect(cont)
+            if w*h > max_area:
+                rect = x, y, x + w, y + h
+                max_area = w*h
+            all_rects.append((x, y, x + w, y + h))
+        rects.append(rect)
+
+    if n == 2:
+        # Consider largest contour to be the first painting
+        reversed_sorted_contours = sorted(contour_list, key=len, reverse=True)
+        first_contour = reversed_sorted_contours[0]
+        second_contour = []
+        for contour in reversed_sorted_contours:
+            if not contours_overlap(first_contour, contour):
+                second_contour = contour
+                break
+
+        list_of_painting_coordinates = []
+
+        # First painting
+        Ax, Ay, Aw, Ah = cv.boundingRect(first_contour)
+        rects.append([Ax, Ay, Ax+Aw, Ay+Ah])
+
+        # Second painting (not always there is a second painting)
+        if len(second_contour) > 0:
+            Bx, By, Bw, Bh = cv.boundingRect(second_contour)
+            if (Bw * Bh) > ((Aw * Ah) / 100):  # area of the second painting is
+                rects.append([Bx, By, Bx+Bw, By+Bh])
+
+    return rects, all_rects
+
+
+def morph_threshold_mask(im, n):
     struct_el = cv.getStructuringElement(cv.MORPH_RECT, (5, 1))
     im_morph = cv.morphologyEx(im, cv.MORPH_CLOSE, struct_el)
 
@@ -156,26 +195,27 @@ def morph_threshold_mask(im):
     # struct_el = cv.getStructuringElement(cv.MORPH_RECT, (5, 5))
     # im_morph = cv.morphologyEx(im_morph, cv.MORPH_ERODE, struct_el)
 
-
     contours, _ = cv.findContours(im_morph, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_NONE)
 
-    rect = 0, 0, 0, 0
-    max_area = 0
-    for cont in contours:
-        x, y ,w ,h = cv.boundingRect(cont)
-        if w*h > max_area:
-            rect = x, y, x + w, y + h
-            max_area = w*h
-    
+    rect_list, all_rects = decide_best_rect(contours, n)
+
+    # im_morph_show = cv.cvtColor(im_morph, cv.COLOR_GRAY2BGR)
+    # for r in all_rects:
+    #     im_morph_show = cv.rectangle(im_morph_show, (r[0], r[1]), (r[2], r[3]), (255,0,0), 2)
+
+    # cv.imshow('rects', cv.resize(im_morph_show, (900, 900*im_morph_show.shape[0]//im_morph_show.shape[1])))
+    # cv.waitKey(0)
+
     mask_im = np.zeros_like(im)
-    mask_im[rect[1]:rect[3], rect[0]:rect[2]] = 1
+    for rect in rect_list:
+        mask_im[rect[1]:rect[3], rect[0]:rect[2]] = 1
 
-    return mask_im,[rect] # mask retrieval functions should always return lists now
+    return mask_im, rect_list # mask retrieval functions should always return lists now
 
 
 
-def hsv_thresh_method(im):
-    return morph_threshold_mask(method_colorspace_threshold(im.copy(), [0, 255], [100, 255], [0, 200], 'hsv'))
+def hsv_thresh_method(im, n=1):
+    return morph_threshold_mask(method_colorspace_threshold(im.copy(), [0, 255], [100, 255], [0, 200], 'hsv'), n)
  
 
 def method_colorspace_threshold(image, x_range, y_range, z_range, colorspace, save=False, generate_measures=False):

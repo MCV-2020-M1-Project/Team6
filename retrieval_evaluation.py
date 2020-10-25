@@ -11,6 +11,9 @@ import numpy as np
 import box_retrieval
 
 
+def sort_rects_lrtb(rect_list):
+    return sorted(rect_list, key = lambda x: x[0] + x[1])
+
 #calculates mean of all mapk values for particular method
 def calculate_mean_all(mapk_values):
     mean_of_mapk=sum(mapk_values)/len(mapk_values)
@@ -46,9 +49,10 @@ def main(queryset_name, descriptor, measure, k, similarity, background, bbox):
             # placeholder call to bg removal 
             # mask = bg.method_similar_channels_jc(img, 30)
             # masks = bg.method_canny(img)
-            # masks = bg.hsv_thresh_method(img)[1]
-            masks = bg.method_canny_multiple_paintings(img)[1]
+            mask_img, masks = bg.hsv_thresh_method(img, 2)
+            # masks = bg.method_canny_multiple_paintings(img)[1]
             # print(len(masks), masks)
+            masks = sort_rects_lrtb(masks)
             for mask in masks:
                 v1 = mask[:2] # remember it was [1][2:] before
                 v2 = mask[2:]
