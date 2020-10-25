@@ -46,8 +46,8 @@ def main(queryset_name, descriptor, measure, k, similarity, background, bbox):
             # placeholder call to bg removal 
             # mask = bg.method_similar_channels_jc(img, 30)
             # masks = bg.method_canny(img)
-            masks = bg.hsv_thresh_method(img)[1]
-            # masks = bg.method_canny_multiple_paintings(img)[1]
+            # masks = bg.hsv_thresh_method(img)[1]
+            masks = bg.method_canny_multiple_paintings(img)[1]
             # print(len(masks), masks)
             for mask in masks:
                 v1 = mask[:2] # remember it was [1][2:] before
@@ -97,7 +97,10 @@ def main(queryset_name, descriptor, measure, k, similarity, background, bbox):
     for query_descript_dic in qs_descript_list:
         predicted.append([cbir.get_histogram_top_k_similar(p[descriptor], \
                         db_descript_list, descriptor, measure, similarity, k) \
-                        for p in query_descript_dic][0]) # IF GT FORMAT IS AS IN W1, REMEMBER TO INDEX THE FIRST (AND ONLY) ELEMENT OF THIS COMPRESSED LIST
+                        for p in query_descript_dic]) # IF GT FORMAT IS AS IN W1, REMEMBER TO INDEX THE FIRST (AND ONLY) ELEMENT OF THIS COMPRESSED LIST
+
+
+
 
     #Read grandtruth from .pkl
     actual = [] #just a list of all images from the query folder - not ordered
@@ -105,10 +108,26 @@ def main(queryset_name, descriptor, measure, k, similarity, background, bbox):
     with open(os.path.join(*path), 'rb') as gtfile:
         actual = pkl.load(gtfile)
 
-    map_k = metrics.kdd_mapk(actual,predicted,k)
+    # Extending lsits to get performance for list of lits of lists
+    new_predicted = []
+    for images in predicted:
+        for paintings in images:
+            new_predicted.append(paintings)
+    
+    new_actual = []
+    for images in actual:
+        if len(images) > 1:
+            for paintings in images:
+                new_actual.append([paintings])
+        else:
+            new_actual.append(images)
 
-    print('actual:', actual)
-    print('predicted:', predicted)
+    map_k = metrics.kdd_mapk(new_actual,new_predicted,k)
+
+    # print('actual:', actual)
+    print('new actual:', new_actual)
+    # print('predicted:', predicted)
+    print('new predicted:', new_predicted)
     print(map_k)
 
     with open('results.csv', 'w', newline='') as file:
