@@ -45,24 +45,25 @@ def main(queryset_name, descriptor, measure, k, similarity, background, bbox):
         if background:
             # placeholder call to bg removal 
             # mask = bg.method_similar_channels_jc(img, 30)
-            masks = bg.method_canny(img)
-
+            # masks = bg.method_canny(img)
+            masks = bg.method_canny_multiple_paintings(img)[1]
+            # print(len(masks), masks)
             for mask in masks:
-                v1 = mask[1][:2]
-                v2 = mask[1][2:]
-                paintings.append(img[v1[0]:v2[0], v1[1]:v2[1]])
+                v1 = mask[:2] # remember it was [1][2:] before
+                v2 = mask[2:]
+                paintings.append(img[v1[1]:v2[1], v1[0]:v2[0]])
         else:
             paintings = [img]
 
         if bbox:
-            box_masks = [(1 - box_retrieval.filled_boxes(painting)[1]) for painting in paintings]
+            box_masks = [(1 - box_retrieval.filled_boxes(painting.copy())[1]) for painting in paintings]
             qs_descript_list.append([desc.get_descriptors(paintings[i], box_masks[i]) \
              for i in range(len(paintings))]) # get a dic with the descriptors for the n pictures per painting
 
             temp_list = []
             for i in range(len(paintings)):
-                bbox_loc =  box_retrieval.filled_boxes(paintings[i])[4]
-                mask_loc = masks[i][1] if background else (0, 0)
+                bbox_loc =  box_retrieval.filled_boxes(paintings[i].copy())[4]
+                mask_loc = masks[i] if background else (0, 0)
 
                 bbox_loc[0] += mask_loc[0]
                 bbox_loc[1] += mask_loc[1]

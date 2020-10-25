@@ -204,6 +204,7 @@ def get_hs_multiresolution_hist(img, mask=None):
 def get_multiresolution_hist(img, mask=None):
 
     #get hist of the whole img
+
     hist = get_bgr_concat_hist(img, mask)
 
     #get hist of the 2x2 partition
@@ -213,7 +214,7 @@ def get_multiresolution_hist(img, mask=None):
     if mask is None:
         tiles_hist = [get_bgr_concat_hist(tiles[i], None) for i in range(len(tiles))]
     else:
-        mask_tiled = get_tile_partition(mask,2,2)
+        mask_tiled = get_tile_partition(mask.copy(),2,2)
         tiles_hist = [get_bgr_concat_hist(tiles[i], mask_tiled[i]) for i in range(len(tiles))]
     hist = np.concatenate((hist, *tiles_hist))
 
@@ -223,7 +224,8 @@ def get_multiresolution_hist(img, mask=None):
         tiles_hist = [get_bgr_concat_hist(tiles[i], None) for i in range(len(tiles))]
     else:
         mask_tiled = get_tile_partition(mask,4,4)
-        tiles_hist = [get_bgr_concat_hist(tiles[i], mask_tiled[i]) for i in range(len(tiles))]
+        tiles_hist = [get_bgr_concat_hist(tiles[i], mask_tiled[i]) for i in range(len(tiles))
+        
     hist = np.concatenate((hist, *tiles_hist))
 
     return hist
@@ -247,10 +249,7 @@ def get_hs_concat_hist_st(img, mask=None):
 def get_descriptors(img, mask=None):
     ''' Paramenters: img (color image)
         Returns: descript_dic (dictionary with descriptors names as keys) '''
-    # if mask is not None:
-    #     cv2.imshow('img', img)
-    #     cv2.imshow('mask', 255*mask)
-    #     cv2.waitKey(0)
+
     descript_dic = {}
     # descript_dic['gray_hist'] = get_gray_hist(img, mask)
     # descript_dic['bgr_concat_hist'] = get_bgr_concat_hist(img, mask)
@@ -266,6 +265,7 @@ def get_descriptors(img, mask=None):
     mask_tiled = None
     if mask is not None:
         mask_tiled = get_tile_partition(mask,2,2)
+
     descript_dic['hs_multi_hist'] = get_hs_multi_hist(tiles, mask_tiled)
     descript_dic['hs_multiresolution'] = get_hs_multiresolution_hist(img, mask)
     descript_dic['bgr_multiresolution'] = get_multiresolution_hist(img, mask)

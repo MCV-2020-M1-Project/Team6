@@ -65,10 +65,14 @@ def check_box_fill(im, x, y, w, h):
 
 
 def filled_boxes(im):
+
+    # cv.imshow('im', im)
+    # cv.waitKey(0)
+
     kernel = np.ones((10, 10), np.uint8)
     # im = cv.morphologyEx(im, cv.MORPH_OPEN, kernel)
-
-    h, s, v = cv.split(cv.cvtColor(im, cv.COLOR_BGR2HSV))
+    hsv = cv.cvtColor(im, cv.COLOR_BGR2HSV)
+    h, s, v = cv.split(hsv)
 
     # cv.imshow('sat',s)
     # cv.waitKey()
