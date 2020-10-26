@@ -14,9 +14,9 @@ def save_masks(removal_method, input_folder):
         os.makedirs(output_path)
 
     files_img = glob.glob(f'../datasets/{input_folder}/*.jpg')
-    print(files_img)
+    # print(files_img)
 
-    images = [cv.imread(i) for i in files_img]
+    images = [(cv.imread(i), i.split('/')[-1].split('.')[0]) for i in files_img]
 
     if removal_method == "canny":
         for i in range(len(images)):
@@ -28,8 +28,14 @@ def save_masks(removal_method, input_folder):
                        method_similar_channels_jc(images[i], 30))    
     elif removal_method == 'hsv_thresh':
         for i in range(len(images)):
-            cv.imwrite(os.path.join(output_path, f"{i:05d}.png"),
-                       255*method_colorspace_threshold(images[i], [0, 255], [100, 255], [0, 150], 'hsv'))
+            cv.imwrite(os.path.join(output_path, images[i][1] + '.png'),
+                       255*hsv_thresh_method(images[i][0], 2)[0])
+    elif removal_method == 'multi_canny':
+        for i in range(len(images)):
+            cv.imwrite(os.path.join(output_path, images[i][1] + '.png'),
+                    255*method_canny_multiple_paintings(images[i][0])[0])
+
+
     else:
         av_methods = 'canny', 'similar_channel', 'hsv_thresh'
         print('Unknown removal method (available methods', ', '.join(av_methods), ')')
@@ -417,14 +423,14 @@ def method_canny_multiple_paintings(image, save=False, generate_measures=False):
     # First painting
     Ax, Ay, Aw, Ah = cv.boundingRect(first_contour)
     list_of_painting_coordinates.append([Ax, Ay, Ax+Aw, Ay+Ah])
-    mask[Ay:Ay+Ah, Ax:Ax+Aw] = 255
+    mask[Ay:Ay+Ah, Ax:Ax+Aw] = 1
 
     # Second painting (not always there is a second painting)
     if len(second_contour) > 0:
         Bx, By, Bw, Bh = cv.boundingRect(second_contour)
         if (Bw * Bh) > ((Aw * Ah) / 100):  # area of the second painting is
             list_of_painting_coordinates.append([Bx, By, Bx+Bw, By+Bh])
-            mask[By:By+Bh, Bx:Bx+Bw] = 255
+            mask[By:By+Bh, Bx:Bx+Bw] = 1
 
     if save:
         if not os.path.exists(f'../datasets/masks_extracted/canny/'):
@@ -435,7 +441,7 @@ def method_canny_multiple_paintings(image, save=False, generate_measures=False):
         return get_measures(image, mask)
     else:
         # List element: [x, y, x+w, y+h]
-        return mask, list_of_painting_coordinates
+        return np.uint8(mask), list_of_painting_coordinates
 
 
 def method_canny(image, save=False, generate_measures=False):

@@ -49,8 +49,8 @@ def main(queryset_name, descriptor, measure, k, similarity, background, bbox):
             # placeholder call to bg removal 
             # mask = bg.method_similar_channels_jc(img, 30)
             # masks = bg.method_canny(img)
-            mask_img, masks = bg.hsv_thresh_method(img, 2)
-            # masks = bg.method_canny_multiple_paintings(img)[1]
+            # mask_img, masks = bg.hsv_thresh_method(img, 2)
+            masks = bg.method_canny_multiple_paintings(img.copy())[1]
             # print(len(masks), masks)
             masks = sort_rects_lrtb(masks)
             for mask in masks:
@@ -62,7 +62,7 @@ def main(queryset_name, descriptor, measure, k, similarity, background, bbox):
 
         if bbox:
             box_masks = [(1 - box_retrieval.filled_boxes(painting.copy())[1]) for painting in paintings]
-            qs_descript_list.append([desc.get_descriptors(paintings[i], box_masks[i]) \
+            qs_descript_list.append([desc.get_descriptors(paintings[i].copy(), box_masks[i]) \
              for i in range(len(paintings))]) # get a dic with the descriptors for the n pictures per painting
 
             temp_list = []
@@ -101,10 +101,12 @@ def main(queryset_name, descriptor, measure, k, similarity, background, bbox):
     for query_descript_dic in qs_descript_list:
         predicted.append([cbir.get_histogram_top_k_similar(p[descriptor], \
                         db_descript_list, descriptor, measure, similarity, k) \
-                        for p in query_descript_dic]) # IF GT FORMAT IS AS IN W1, REMEMBER TO INDEX THE FIRST (AND ONLY) ELEMENT OF THIS COMPRESSED LIST
+                        for p in query_descript_dic])
 
-
-
+    # For generating submission pkl
+    # with open('../dlcv06/m1-results/week2/QST2/method2/result.pkl', 'wb') as f:
+    #     pkl.dump(predicted, f)
+    # quit()
 
     #Read grandtruth from .pkl
     actual = [] #just a list of all images from the query folder - not ordered
@@ -132,7 +134,7 @@ def main(queryset_name, descriptor, measure, k, similarity, background, bbox):
     print('new actual:', new_actual)
     # print('predicted:', predicted)
     print('new predicted:', new_predicted)
-    print(map_k)
+    print('Result =', map_k)
 
     with open('results.csv', 'w', newline='') as file:
         writer = csv.writer(file)
