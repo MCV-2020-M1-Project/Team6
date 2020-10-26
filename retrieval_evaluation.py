@@ -1,26 +1,32 @@
-import ml_metrics as metrics
+'''
+Main script for getting results and evaluation performance
+'''
+# Standart imports
 import pickle as pkl
-import cv2
+import os
+import csv
 import argparse
+# Lib imports
+import ml_metrics as metrics
+import cv2
+# Our code imports
 import cbir
 import descriptor_lib as desc
-import background_removal as bg 
-import os, os.path
-import csv
-import numpy as np
+import background_removal as bg
 import box_retrieval
 
 
 def sort_rects_lrtb(rect_list):
+    '''
+    Sorts rect lists from left to right and top to bottom
+    '''
     return sorted(rect_list, key = lambda x: (x[0], x[1]))
 
-#calculates mean of all mapk values for particular method
-def calculate_mean_all(mapk_values):
-    mean_of_mapk=sum(mapk_values)/len(mapk_values)
-    return mean_of_mapk
 
 def main(queryset_name, descriptor, measure, k, similarity, background, bbox):
-
+    '''
+    Main function
+    '''
     #Read descriptors of the museum db from .pkl
     path = ['pkl_data','bd_descriptors.pkl'] #for making the path system independent
     db_descript_list = []
@@ -47,42 +53,47 @@ def main(queryset_name, descriptor, measure, k, similarity, background, bbox):
         paintings = []
         if background:
             # masks = bg.method_canny(img)
-            # mask_img, masks = bg.hsv_thresh_method(img, 2)
-            masks = bg.method_canny_multiple_paintings(img.copy())[1]
-            
+            _, masks = bg.hsv_thresh_method(img, 2)
+            # masks = bg.method_canny_multiple_paintings(img.copy())[1]
+
             masks = sort_rects_lrtb(masks)
             for mask in masks:
-                v1 = mask[:2] # remember it was [1][2:] before
+                v1 = mask[:2]
                 v2 = mask[2:]
                 paintings.append(img[v1[1]:v2[1], v1[0]:v2[0]])
         else:
             paintings = [img]
 
         if bbox:
-            box_masks = [(1 - box_retrieval.filled_boxes(painting.copy())[1]) for painting in paintings]
-            qs_descript_list.append([desc.get_descriptors(paintings[i].copy(), box_masks[i]) \
-             for i in range(len(paintings))]) # get a dic with the descriptors for the n pictures per painting
+            box_masks = [(1 - box_retrieval.filled_boxes(painting.copy())[1]) \
+                for painting in paintings]
 
+            # get a dict with the descriptors for the n pictures per painting
+            qs_descript_list.append([desc.get_descriptors(paintings[i].copy(), box_masks[i]) \
+             for i in range(len(paintings))])
+
+            # Save text boxes in a pkl for evaluation
             temp_list = []
-            for i in range(len(paintings)):
-                bbox_loc =  box_retrieval.filled_boxes(paintings[i].copy())[4]
-                mask_loc = masks[i] if background else (0, 0)
+            for l, painting in enumerate(paintings):
+                bbox_loc =  box_retrieval.filled_boxes(painting.copy())[4]
+                mask_loc = masks[l] if background else (0, 0)
 
                 bbox_loc[0] += mask_loc[0]
                 bbox_loc[1] += mask_loc[1]
                 bbox_loc[2] += mask_loc[0]
                 bbox_loc[3] += mask_loc[1]
-                
+
                 temp_list.append(bbox_loc)
 
             bbox_list.append(sort_rects_lrtb(temp_list))
         else:
-            qs_descript_list.append([desc.get_descriptors(paintings[i], None) \
-             for i in range(len(paintings))]) # get a dic with the descriptors for the n pictures per painting
-    
+            # get a dic with the descriptors for the n pictures per painting
+            qs_descript_list.append([desc.get_descriptors(painting.copy(), None) \
+             for painting in paintings])
+
     with open('text_boxes.pkl', 'wb') as f:
         pkl.dump(bbox_list, f)
-    
+
     predicted = []
     for query_descript_dic in qs_descript_list:
         predicted.append([cbir.get_histogram_top_k_similar(p[descriptor], \
@@ -94,18 +105,18 @@ def main(queryset_name, descriptor, measure, k, similarity, background, bbox):
     #     pkl.dump(predicted, f)
     # quit()
 
-    #Read grandtruth from .pkl
+    #Read groundtruth from .pkl
     actual = [] #just a list of all images from the query folder - not ordered
     path = ['..','datasets', queryset_name, 'gt_corresps.pkl']
     with open(os.path.join(*path), 'rb') as gtfile:
         actual = pkl.load(gtfile)
 
-    # Extending lsits to get performance for list of lits of lists
+    # Extending lists to get performance for list of lists of lists
     new_predicted = []
     for images in predicted:
         for paintings in images:
             new_predicted.append(paintings)
-    
+
     new_actual = []
     for images in actual:
         if len(images) > 1:
@@ -124,13 +135,12 @@ def main(queryset_name, descriptor, measure, k, similarity, background, bbox):
 
     with open('results.csv', 'w', newline='') as file:
         writer = csv.writer(file)
-        writer.writerow(['Queryset: '+queryset_name, 'Descriptor: '+descriptor, 'Measure: '+ measure, 'k: '+ str(k)])
+        writer.writerow(['Queryset: ' + queryset_name, 'Descriptor: ' + descriptor, \
+            'Measure: ' + measure, 'k: '+ str(k)])
         writer.writerow(['Map@k: '+str(map_k)])
         writer.writerow(['Actual','Predicted'])
         for i in range(len(actual)):
             writer.writerow([str(actual[i]), str(predicted[i])])
-
-    #calculate_mean_all(mapk_values)
 
 
 if __name__ == "__main__":
@@ -143,7 +153,7 @@ if __name__ == "__main__":
     parser.add_argument('-b', '--background', required=False, default=False, action='store_true')
     parser.add_argument('-s', '--similarity', required=False, default=False, action='store_true')
     parser.add_argument('-bb', '--bbox', required=False, default=False, action='store_true')
-  
+
     args = parser.parse_args()
 
     main(args.q, args.d, args.m, args.k, args.similarity, args.background, args.bbox)
