@@ -12,7 +12,7 @@ import box_retrieval
 
 
 def sort_rects_lrtb(rect_list):
-    return sorted(rect_list, key = lambda x: x[0] + x[1])
+    return sorted(rect_list, key = lambda x: (x[0], x[1]))
 
 #calculates mean of all mapk values for particular method
 def calculate_mean_all(mapk_values):
@@ -46,12 +46,10 @@ def main(queryset_name, descriptor, measure, k, similarity, background, bbox):
 
         paintings = []
         if background:
-            # placeholder call to bg removal 
-            # mask = bg.method_similar_channels_jc(img, 30)
             # masks = bg.method_canny(img)
             # mask_img, masks = bg.hsv_thresh_method(img, 2)
             masks = bg.method_canny_multiple_paintings(img.copy())[1]
-            # print(len(masks), masks)
+            
             masks = sort_rects_lrtb(masks)
             for mask in masks:
                 v1 = mask[:2] # remember it was [1][2:] before
@@ -75,15 +73,9 @@ def main(queryset_name, descriptor, measure, k, similarity, background, bbox):
                 bbox_loc[2] += mask_loc[0]
                 bbox_loc[3] += mask_loc[1]
                 
-                if i > 0: # maybe check this in the future
-                    if temp_list[0][0] + temp_list[0][1] < bbox_loc[0]+bbox_loc[1]:
-                        temp_list.append(bbox_loc)
-                    else:
-                        temp_list.insert(0, bbox_loc)
-                else:
-                    temp_list.append(bbox_loc)
-            
-            bbox_list.append(temp_list)
+                temp_list.append(bbox_loc)
+
+            bbox_list.append(sort_rects_lrtb(temp_list))
         else:
             qs_descript_list.append([desc.get_descriptors(paintings[i], None) \
              for i in range(len(paintings))]) # get a dic with the descriptors for the n pictures per painting
@@ -91,13 +83,7 @@ def main(queryset_name, descriptor, measure, k, similarity, background, bbox):
     with open('text_boxes.pkl', 'wb') as f:
         pkl.dump(bbox_list, f)
     
-    predicted = [] #order predicted list of images for the method used on particular image
-    #Get the results for every image in the query dataset
-    # for query_descript_dic in qs_descript_list:
-    #     predicted.append(cbir.get_histogram_top_k_similar( \
-    #         query_descript_dic[descriptor], db_descript_list, descriptor, measure, similarity, k))
-
-    # n images per painting
+    predicted = []
     for query_descript_dic in qs_descript_list:
         predicted.append([cbir.get_histogram_top_k_similar(p[descriptor], \
                         db_descript_list, descriptor, measure, similarity, k) \

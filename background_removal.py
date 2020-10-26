@@ -5,7 +5,6 @@ import numpy as np
 from evaluation import mask_evaluation
 import glob
 import pickle as pkl
-#import method_kmeans_colour
 
 def save_masks(removal_method, input_folder):
     output_path = f'../datasets/masks_extracted/{removal_method}'
@@ -69,87 +68,6 @@ def show_image(im):
     cv.imshow('z', z)
     print(x)
 
-
-def method_similar_channels_jc(image, thresh):
-
-    """
-    image - image as an array
-    thresh - threshold as int
-
-    """
-
-    img = image.astype(float)
-
-    # get image properties.
-    h, w = np.shape(img)[:2]
-
-    b_g = abs(img[:, :, 0] - img[:, :, 1])
-    b_r = abs(img[:, :, 0] - img[:, :, 2])
-    g_r = abs(img[:, :, 1] - img[:, :, 2])
-
-    mask_matrix = np.uint8(b_g < thresh) * np.uint8(b_r < thresh) * np.uint8(g_r < thresh)
-    mask_matrix *= np.uint8(img[:, :, 0] > 100) * np.uint8(img[:, :, 1] > 100) * np.uint8(img[:, :, 2] > 100) 
-
-
-    mask_matrix = 1 - mask_matrix
-    return mask_matrix.astype(np.uint8)*255
-
-
-def method_similar_channels(image, thresh, save=False, generate_measures=False):
-
-    """
-    image - image as an array
-    thresh - threshold as int
-    save - if you want to save masks
-    generate measures - generates measures if set to True instead of a mask. If you want to generate measures
-                        against ground truth as image provide name of the imagea without extension
-
-    return: mask or measures( if generate_measures = True)
-
-
-    """
-
-    # read image into matrix.
-    if generate_measures:
-        name = image
-        img = cv.imread(f'../datasets/qsd2_w1/{name}.jpg').astype(float)  # BGR, float
-    else:
-        img = image.astype(float)
-
-    # get image properties.
-    h, w, bpp = np.shape(img)
-    mask_matrix = np.empty(shape=(h, w), dtype='uint8')
-
-    # iterate over the entire image.
-    for py in range(0, h):
-        for px in range(0, w):
-            # print(m[py][px])
-            blue = img[py][px][0]
-            green = img[py][px][1]
-            red = img[py][px][2]
-            b_g = blue - green
-            b_r = blue - red
-            g_r = green - red
-            # and bigger than 100 to not be black
-            if (-thresh < b_g < thresh) \
-                    and (-thresh < b_r < thresh) \
-                    and (-thresh < g_r < thresh) \
-                    and (blue > 100 and green > 100 and red > 100):
-                # print('similar value')
-                mask_matrix[py][px] = 0
-            else:
-                mask_matrix[py][px] = 255
-    # cv.imshow('matrix',mask_matrix)
-    # cv.waitKey()
-    if save:
-        if not os.path.exists(f'../datasets/masks_extracted/msc/'):
-            os.makedirs(f'../datasets/masks_extracted/msc/')
-        cv.imwrite(f'../datasets/masks_extracted/msc/{name}.png', mask_matrix)
-
-    if generate_measures:
-        return get_measures(name, mask_matrix)
-    else:
-        return mask_matrix
 
 def decide_best_rect(contour_list, n=1):
 
@@ -219,7 +137,6 @@ def morph_threshold_mask(im, n):
     return mask_im, rect_list # mask retrieval functions should always return lists now
 
 
-
 def hsv_thresh_method(im, n=1):
     return morph_threshold_mask(method_colorspace_threshold(im.copy(), [0, 255], [100, 255], [0, 200], 'hsv'), n)
  
@@ -269,55 +186,6 @@ def method_colorspace_threshold(image, x_range, y_range, z_range, colorspace, sa
         return get_measures(name, mask_matrix)
     else:
         return np.uint8(mask_matrix / 255)
-
-
-def method_mostcommon_color_kmeans(image, k, thresh, colorspace, save=False, generate_measures=False):
-    """
-    methods uses kmeans to find most common colors on the photo, based on this information
-    it's filtering that color considering it a background.
-
-    k - provides number of buckets for kmeans algorithm
-    thresh - provides number that creates the filter of colors close to the most common one
-    colorspcae - allows to choose from different colorspaces bgr to hsv
-    save - indicates whether you want to save masks or not
-    generate measures - generates measures if set to True instead of a mask. If you want to generate measures
-                        against ground truth as image provide name of the imagea without extension
-
-    return: mask or measures( if generate_measures = True)
-    """
-
-    if generate_measures:
-        name = image
-        img = cv.imread(f'../datasets/qsd2_w1/{name}.jpg')
-    else:
-        img = image
-
-    bgr, hsv = method_kmeans_colour.get_most_common_color(img, k)
-
-    if colorspace == 'bgr':
-        # mask color
-        lower = np.array([bgr[0] - thresh, bgr[1] - thresh, bgr[2] - thresh])
-        upper = np.array([bgr[0] + thresh, bgr[1] + thresh, bgr[2] + thresh])
-        mask_matrix = cv.inRange(img, lower, upper)
-        mask_matrix = cv.bitwise_not(mask_matrix, mask_matrix)
-
-    if colorspace == 'hsv':
-        img = cv.cvtColor(img, cv.COLOR_BGR2HSV)
-        # mask color
-        lower = np.array([hsv[0] - thresh, hsv[1] - thresh, hsv[2] - thresh])
-        upper = np.array([hsv[0] + thresh, hsv[1] + thresh, hsv[2] + thresh])
-        mask_matrix = cv.inRange(img, lower, upper)
-        mask_matrix = cv.bitwise_not(mask_matrix, mask_matrix)
-
-    if save:
-        if not os.path.exists(f'../datasets/masks_extracted/mck_{colorspace}/'):
-            os.makedirs(f'../datasets/masks_extracted/mck_{colorspace}/')
-        cv.imwrite(f'../datasets/masks_extracted/mck_{colorspace}/{name}.png', mask_matrix)
-
-    if generate_measures:
-        return get_measures(name, mask_matrix)
-    else:
-        return mask_matrix
 
 
 def method_watershed(image, save, generate_measures=False):
