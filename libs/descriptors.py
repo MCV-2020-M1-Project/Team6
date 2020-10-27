@@ -1,6 +1,5 @@
 import cv2
 import numpy as np
-import distance_metrics_lib
 
 
 def linear_stretch(im, hist_concat):
@@ -30,7 +29,7 @@ def linear_stretch(im, hist_concat):
         while(hist[c][ini] < thresh):
             # print(hist[c][ini], 'ini = ', ini)
             ini += 1
-        
+
         # print(hist[c][end], 'end = ', end)
         while(hist[c][end] < thresh):
             # print(hist[c][end], 'end = ', end)    

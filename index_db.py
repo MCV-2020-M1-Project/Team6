@@ -1,7 +1,7 @@
+import os
 import pickle as pkl
 import cv2
-import descriptor_lib as desc
-import os
+from libs import descriptors as desc
 
 #Generate descriptors for all images in the BBDD
 descript_dic_list = []

@@ -11,9 +11,9 @@ import ml_metrics as metrics
 import cv2
 # Our code imports
 import cbir
-import descriptor_lib as desc
-import background_removal as bg
-import box_retrieval
+from libs import descriptors as desc
+from libs import background_removal as bg
+from libs import box_retrieval as boxret
 
 
 def sort_rects_lrtb(rect_list):
@@ -65,7 +65,7 @@ def main(queryset_name, descriptor, measure, k, similarity, background, bbox):
             paintings = [img]
 
         if bbox:
-            box_masks = [(1 - box_retrieval.filled_boxes(painting.copy())[1]) \
+            box_masks = [(1 - boxret.filled_boxes(painting.copy())[1]) \
                 for painting in paintings]
 
             # get a dict with the descriptors for the n pictures per painting
@@ -75,7 +75,7 @@ def main(queryset_name, descriptor, measure, k, similarity, background, bbox):
             # Save text boxes in a pkl for evaluation
             temp_list = []
             for l, painting in enumerate(paintings):
-                bbox_loc =  box_retrieval.filled_boxes(painting.copy())[4]
+                bbox_loc =  boxret.filled_boxes(painting.copy())[4]
                 mask_loc = masks[l] if background else (0, 0)
 
                 bbox_loc[0] += mask_loc[0]

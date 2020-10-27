@@ -188,52 +188,6 @@ def method_colorspace_threshold(image, x_range, y_range, z_range, colorspace, sa
         return np.uint8(mask_matrix / 255)
 
 
-def method_watershed(image, save, generate_measures=False):
-    """
-        Return a binary mask that disregards background using watershed algorithm.
-        Assumes that the background is close to the boundaries of the image and that the painting is smooth.
-        Param: image (BGR)
-        return: mask (binary image)
-    """
-    if generate_measures:
-        name = image
-        img = cv.imread(f'../datasets/qsd2_w1/{name}.jpg')
-    else:
-        img = image
-
-    img = cv.cvtColor(img, cv.COLOR_BGR2RGB)
-
-    y_lim = img.shape[0]
-    x_lim = img.shape[1]
-
-    # mask is all zeroes except for background and painting markers
-    mask = np.zeros_like(img[:, :, 0]).astype(np.int32)
-
-    # Background pixels will be set to 1, this assumes position 5,5 is background
-    mask[5, 5] = 1
-
-    # pixels belonging to painting are set to 255, assuming the painting is always at the center of the image
-    mask[int(y_lim / 2), int(x_lim / 2)] = 255
-    mask[int(y_lim / 2) - 20, int(x_lim / 2)] = 255
-    mask[int(y_lim / 2) + 20, int(x_lim / 2)] = 255
-    mask[int(y_lim / 2), int(x_lim / 2) - 20] = 255
-    mask[int(y_lim / 2), int(x_lim / 2) + 20] = 255
-    mask[y_lim - int(y_lim * 0.3), int(x_lim / 2) + 20] = 255
-
-    mask = cv.watershed(img, mask)
-    mask = (mask > 1)*255  # binarize (watershed did classify background as 1, non background as -1 and painting as 255)
-
-    if save:
-        if not os.path.exists(f'../datasets/masks_extracted/watershed/'):
-            os.makedirs(f'../datasets/masks_extracted/watershed/')
-        cv.imwrite(f'../datasets/masks_extracted/watershed/{name}.png', mask)
-
-    if generate_measures:
-        return get_measures(image, mask)
-    else:
-        return mask.astype(np.uint8)
-
-
 def contours_overlap(contour_A, contour_B):
     # Coordinates of bounding rectangle 1
     Ax, Ay, Aw, Ah = cv.boundingRect(contour_A)
@@ -435,5 +389,3 @@ if __name__ == '__main__':
 
     main(args.name, args.display, args.save)
 
-# show_image('00000')
-# method_similar_channels('00003')
