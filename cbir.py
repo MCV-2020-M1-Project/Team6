@@ -1,10 +1,13 @@
-import pickle as pkl
-import argparse
-import cv2
-import descriptor_lib as desc
-import distance_metrics_lib as dists
-import sys
 import os
+import argparse
+import pickle as pkl
+
+import cv2
+
+from libs import descriptors as desc
+from libs import distance_metrics as dists
+# from libs import background_removal as bg
+# from libs import box_retrieval as boxret
 
 
 def get_histogram_top_k_similar(query_descriptor, db_descriptor_list, descriptor, measure, similarity, k=3):

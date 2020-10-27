@@ -1,22 +1,32 @@
-import ml_metrics as metrics
+'''
+Main script for getting results and evaluation performance
+'''
+# Standart imports
 import pickle as pkl
-import cv2
-import argparse
-import cbir
-import descriptor_lib as desc
-import background_removal as bg 
-import os, os.path
+import os
 import csv
-import numpy as np
-import box_retrieval
+import argparse
+# Lib imports
+import ml_metrics as metrics
+import cv2
+# Our code imports
+import cbir
+from libs import descriptors as desc
+from libs import background_removal as bg
+from libs import box_retrieval as boxret
 
-#calculates mean of all mapk values for particular method
-def calculate_mean_all(mapk_values):
-    mean_of_mapk=sum(mapk_values)/len(mapk_values)
-    return mean_of_mapk
+
+def sort_rects_lrtb(rect_list):
+    '''
+    Sorts rect lists from left to right and top to bottom
+    '''
+    return sorted(rect_list, key = lambda x: (x[0], x[1]))
+
 
 def main(queryset_name, descriptor, measure, k, similarity, background, bbox):
-
+    '''
+    Main function
+    '''
     #Read descriptors of the museum db from .pkl
     path = ['pkl_data','bd_descriptors.pkl'] #for making the path system independent
     db_descript_list = []
@@ -42,103 +52,95 @@ def main(queryset_name, descriptor, measure, k, similarity, background, bbox):
 
         paintings = []
         if background:
-            # placeholder call to bg removal 
-            # mask = bg.method_similar_channels_jc(img, 30)
             # masks = bg.method_canny(img)
-            masks = bg.hsv_thresh_method(img)[1]
-            # masks = bg.method_canny_multiple_paintings(img)[1]
-            # print(len(masks), masks)
+            _, masks = bg.hsv_thresh_method(img, 2)
+            # masks = bg.method_canny_multiple_paintings(img.copy())[1]
+
+            masks = sort_rects_lrtb(masks)
             for mask in masks:
-                v1 = mask[:2] # remember it was [1][2:] before
+                v1 = mask[:2]
                 v2 = mask[2:]
                 paintings.append(img[v1[1]:v2[1], v1[0]:v2[0]])
         else:
             paintings = [img]
 
         if bbox:
-            # box_masks = [(1 - box_retrieval.filled_boxes(painting.copy())[1]) for painting in paintings]
-            # qs_descript_list.append([desc.get_descriptors(paintings[i], box_masks[i]) \
-            #  for i in range(len(paintings))]) # get a dic with the descriptors for the n pictures per painting
+            box_masks = [(1 - boxret.filled_boxes(painting.copy())[1]) \
+                for painting in paintings]
 
-            box_masks = [(box_retrieval.filled_boxes(painting.copy())[1]) for painting in paintings]
-            for i in range(len(box_masks)):
-                if np.mean(box_masks[i]) == 0:
-                    box_masks[i] = (box_retrieval.get_boxes(paintings[i]))
-            print(np.uint8(box_masks[i]))
-            box_masks[i] = np.uint8(box_masks[i])
-            cv2.imshow('my',box_masks[i]*255)
-            cv2.waitKey(0)
-            inpainted_paintings = []
-            for i in range(len(paintings)):
-                box_masks[i] = cv2.resize(box_masks[i], (512,512*box_masks[i].shape[0]//box_masks[i].shape[1]))
-                box_masks[i] = cv2.morphologyEx(box_masks[i],cv2.MORPH_DILATE, np.ones((7,7)), iterations=3)
-                paintings[i] = cv2.resize(paintings[i], (512,512*paintings[i].shape[0]//paintings[i].shape[1]))
-                paintings[i] = cv2.inpaint(paintings[i],box_masks[i],3,cv2.INPAINT_NS)
-                inpainted_paintings.append(paintings[i])
-            cv2.imshow('inapinted',inpainted_paintings[0])
-            cv2.waitKey(0)
-            #quit()
-            qs_descript_list.append([desc.get_descriptors(painting) for painting in inpainted_paintings])
-            
+            # get a dict with the descriptors for the n pictures per painting
+            qs_descript_list.append([desc.get_descriptors(paintings[i].copy(), box_masks[i]) \
+             for i in range(len(paintings))])
+
+            # Save text boxes in a pkl for evaluation
             temp_list = []
-            for i in range(len(paintings)):
-                bbox_loc =  box_retrieval.filled_boxes(paintings[i].copy())[4]
-                mask_loc = masks[i] if background else (0, 0)
+            for l, painting in enumerate(paintings):
+                bbox_loc =  boxret.filled_boxes(painting.copy())[4]
+                mask_loc = masks[l] if background else (0, 0)
 
                 bbox_loc[0] += mask_loc[0]
                 bbox_loc[1] += mask_loc[1]
                 bbox_loc[2] += mask_loc[0]
                 bbox_loc[3] += mask_loc[1]
-                
-                if i > 0: # maybe check this in the future
-                    if temp_list[0][0] + temp_list[0][1] < bbox_loc[0]+bbox_loc[1]:
-                        temp_list.append(bbox_loc)
-                    else:
-                        temp_list.insert(0, bbox_loc)
-                else:
-                    temp_list.append(bbox_loc)
-            
-            bbox_list.append(temp_list)
+
+                temp_list.append(bbox_loc)
+
+            bbox_list.append(sort_rects_lrtb(temp_list))
         else:
-            qs_descript_list.append([desc.get_descriptors(paintings[i], None) \
-             for i in range(len(paintings))]) # get a dic with the descriptors for the n pictures per painting
-    
+            # get a dic with the descriptors for the n pictures per painting
+            qs_descript_list.append([desc.get_descriptors(painting.copy(), None) \
+             for painting in paintings])
+
     with open('text_boxes.pkl', 'wb') as f:
         pkl.dump(bbox_list, f)
-    
-    predicted = [] #order predicted list of images for the method used on particular image
-    #Get the results for every image in the query dataset
-    # for query_descript_dic in qs_descript_list:
-    #     predicted.append(cbir.get_histogram_top_k_similar( \
-    #         query_descript_dic[descriptor], db_descript_list, descriptor, measure, similarity, k))
 
-    # n images per painting
+    predicted = []
     for query_descript_dic in qs_descript_list:
         predicted.append([cbir.get_histogram_top_k_similar(p[descriptor], \
                         db_descript_list, descriptor, measure, similarity, k) \
-                        for p in query_descript_dic][0]) # IF GT FORMAT IS AS IN W1, REMEMBER TO INDEX THE FIRST (AND ONLY) ELEMENT OF THIS COMPRESSED LIST
+                        for p in query_descript_dic])
 
-    #Read grandtruth from .pkl
+    # For generating submission pkl
+    # with open('../dlcv06/m1-results/week2/QST2/method2/result.pkl', 'wb') as f:
+    #     pkl.dump(predicted, f)
+    # quit()
+
+    #Read groundtruth from .pkl
     actual = [] #just a list of all images from the query folder - not ordered
     path = ['..','datasets', queryset_name, 'gt_corresps.pkl']
     with open(os.path.join(*path), 'rb') as gtfile:
         actual = pkl.load(gtfile)
 
-    map_k = metrics.kdd_mapk(actual,predicted,k)
+    # Extending lists to get performance for list of lists of lists
+    new_predicted = []
+    for images in predicted:
+        for paintings in images:
+            new_predicted.append(paintings)
 
-    print('actual:', actual)
-    print('predicted:', predicted)
-    print(map_k)
+    new_actual = []
+    for images in actual:
+        if len(images) > 1:
+            for paintings in images:
+                new_actual.append([paintings])
+        else:
+            new_actual.append(images)
+
+    map_k = metrics.kdd_mapk(new_actual,new_predicted,k)
+
+    # print('actual:', actual)
+    print('new actual:', new_actual)
+    # print('predicted:', predicted)
+    print('new predicted:', new_predicted)
+    print('Result =', map_k)
 
     with open('results.csv', 'w', newline='') as file:
         writer = csv.writer(file)
-        writer.writerow(['Queryset: '+queryset_name, 'Descriptor: '+descriptor, 'Measure: '+ measure, 'k: '+ str(k)])
+        writer.writerow(['Queryset: ' + queryset_name, 'Descriptor: ' + descriptor, \
+            'Measure: ' + measure, 'k: '+ str(k)])
         writer.writerow(['Map@k: '+str(map_k)])
         writer.writerow(['Actual','Predicted'])
         for i in range(len(actual)):
             writer.writerow([str(actual[i]), str(predicted[i])])
-
-    #calculate_mean_all(mapk_values)
 
 
 if __name__ == "__main__":
@@ -151,7 +153,7 @@ if __name__ == "__main__":
     parser.add_argument('-b', '--background', required=False, default=False, action='store_true')
     parser.add_argument('-s', '--similarity', required=False, default=False, action='store_true')
     parser.add_argument('-bb', '--bbox', required=False, default=False, action='store_true')
-  
+
     args = parser.parse_args()
 
     main(args.q, args.d, args.m, args.k, args.similarity, args.background, args.bbox)
