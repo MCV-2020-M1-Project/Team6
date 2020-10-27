@@ -10,7 +10,6 @@ import csv
 import numpy as np
 import box_retrieval
 
-
 #calculates mean of all mapk values for particular method
 def calculate_mean_all(mapk_values):
     mean_of_mapk=sum(mapk_values)/len(mapk_values)
@@ -57,10 +56,30 @@ def main(queryset_name, descriptor, measure, k, similarity, background, bbox):
             paintings = [img]
 
         if bbox:
-            box_masks = [(1 - box_retrieval.filled_boxes(painting.copy())[1]) for painting in paintings]
-            qs_descript_list.append([desc.get_descriptors(paintings[i], box_masks[i]) \
-             for i in range(len(paintings))]) # get a dic with the descriptors for the n pictures per painting
+            # box_masks = [(1 - box_retrieval.filled_boxes(painting.copy())[1]) for painting in paintings]
+            # qs_descript_list.append([desc.get_descriptors(paintings[i], box_masks[i]) \
+            #  for i in range(len(paintings))]) # get a dic with the descriptors for the n pictures per painting
 
+            box_masks = [(box_retrieval.filled_boxes(painting.copy())[1]) for painting in paintings]
+            for i in range(len(box_masks)):
+                if np.mean(box_masks[i]) == 0:
+                    box_masks[i] = (box_retrieval.get_boxes(paintings[i]))
+            print(np.uint8(box_masks[i]))
+            box_masks[i] = np.uint8(box_masks[i])
+            cv2.imshow('my',box_masks[i]*255)
+            cv2.waitKey(0)
+            inpainted_paintings = []
+            for i in range(len(paintings)):
+                box_masks[i] = cv2.resize(box_masks[i], (512,512*box_masks[i].shape[0]//box_masks[i].shape[1]))
+                box_masks[i] = cv2.morphologyEx(box_masks[i],cv2.MORPH_DILATE, np.ones((7,7)), iterations=3)
+                paintings[i] = cv2.resize(paintings[i], (512,512*paintings[i].shape[0]//paintings[i].shape[1]))
+                paintings[i] = cv2.inpaint(paintings[i],box_masks[i],3,cv2.INPAINT_NS)
+                inpainted_paintings.append(paintings[i])
+            cv2.imshow('inapinted',inpainted_paintings[0])
+            cv2.waitKey(0)
+            #quit()
+            qs_descript_list.append([desc.get_descriptors(painting) for painting in inpainted_paintings])
+            
             temp_list = []
             for i in range(len(paintings)):
                 bbox_loc =  box_retrieval.filled_boxes(paintings[i].copy())[4]

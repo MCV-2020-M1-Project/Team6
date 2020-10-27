@@ -3,6 +3,7 @@ import glob
 import pickle as pkl
 import numpy as np
 import os, os.path
+import descriptor_lib
 
 def test():
 
@@ -63,6 +64,108 @@ def check_box_fill(im, x, y, w, h):
 
     return crop_img, count_whites, count_whites / count_all
 
+def get_boxes(im):
+
+    kernel = np.ones((10, 10), np.uint8)
+    # im = cv.morphologyEx(im, cv.MORPH_OPEN, kernel)
+
+    im = linear_stretch( im, descriptor_lib.get_bgr_concat_hist(im))
+
+    b, g, r = cv.split(im)
+    b = np.float64(b)
+    g = np.float64(g)
+    r = np.float64(r)
+
+    mask_matrix = np.zeros_like(im)
+    tol = 30
+    #mask_matrix = np.uint8(b+g+r<tol) + np.uint8(b+g+r>(255-tol)*3)
+    mask_matrix = np.uint8(b < tol) * np.uint8(g < tol) * np.uint8(r < tol) + np.uint8(b > (255-tol)) * np.uint8(g > (255-tol)) * np.uint8(r > (255-tol))
+    #mask_matrix *= np.uint8(img[:, :, 0] > 100) * np.uint8(img[:, :, 1] > 100) * np.uint8(img[:, :, 2] > 100) 
+
+    mask = mask_matrix.astype(np.uint8)*255
+    
+
+    s_in = cv.morphologyEx(mask, cv.MORPH_OPEN, kernel)
+    _, s_out = cv.threshold(s_in, 30, 250, cv.THRESH_BINARY_INV)
+    shape = im.shape
+    h = shape[0] // 50  # 50
+    w = shape[1] // 5
+    kernel_eliminate_small = np.ones((h, w), np.uint8)
+    s_out = cv.morphologyEx(s_out, cv.MORPH_OPEN, kernel_eliminate_small)
+    s_out = cv.morphologyEx(s_out, cv.MORPH_CLOSE, kernel_eliminate_small)
+
+    contours, _ = cv.findContours(s_out, cv.RETR_LIST, cv.CHAIN_APPROX_SIMPLE)
+
+    max_fill = 0
+    location = [0, 0, 0, 0]
+
+    rect = s_out.copy()
+    rect_list = []
+
+    
+
+    for i, frame in enumerate(contours):
+        a = np.array([tuple(x[0]) for x in frame])
+        x, y, w, h = cv.boundingRect(a)
+        test = im.copy()
+        if abs(w*h-im.shape[0]*im.shape[1]) > im.shape[0]*im.shape[1]*0.03:
+            rect_list.append(cv.boundingRect(a))
+            crop_img, count_whites, fill = check_box_fill(s_out, x, y, w, h)
+            if h < w/3:
+                cv.rectangle(test, (x, y), (x + w, y + h), (0, 0, 255), 5)
+                location = [x, y, x + w, y + h]
+    shape = im.shape
+    box_img = np.zeros(shape=(shape[0], shape[1]))
+    box_img[location[1]:location[3], location[0]:location[2]] = 1
+
+    # for i, frame in enumerate(contours):
+    #     a = np.array([tuple(x[0]) for x in frame])
+    #     x, y, w, h = cv.boundingRect(a)
+    #     test = im.copy()
+    #     cv.rectangle(test, (x, y), (x + w, y + h), (0, 0, 255), 5)
+    #     rect_list.append(cv.boundingRect(a))
+    #     cv.imshow('out',test)
+    #     cv.waitKey()
+    #     crop_img, count_whites, fill = check_box_fill(s_out, x, y, w, h)
+    #     rect = cv.rectangle(rect, (x, y), (x + w, y + h), (255, 0, 0), 5)
+    #     im = cv.rectangle(im, (x, y), (x + w, y + h), (0, 0, 255), 5)
+    #     # print(f'imsize={crop_img.size}, minimal={s_out.size / 70}')
+
+    #     if crop_img.size > (s_out.size / 70) and h < w:
+    #         if fill > max_fill:
+    #             max_fill = fill
+    #             location = [x, y, x + w, y + h]
+
+    shape = im.shape
+    box_img = np.zeros(shape=(shape[0], shape[1]))
+    box_img[location[1]:location[3], location[0]:location[2]] = 1
+
+    #s_in, box_img.astype(np.uint8), rect, im, location
+
+
+    # cv.imshow('b',b)
+    # cv.imshow('g',g)
+    # cv.imshow('r',r)
+    # cv.waitKey()
+
+    # hsv = cv.cvtColor(im, cv.COLOR_BGR2HSV)
+    # h, s, v = cv.split(hsv)
+    
+    # mask_matrix = np.zeros_like(im)
+    # tol = 50
+    # mask_matrix = np.uint8(v<tol) + np.uint8(v>(255-tol))
+
+    # mask = mask_matrix.astype(np.uint8)*255
+    # cv.imshow('im',im)
+    # cv.imshow('mask',mask)
+    # cv.waitKey()
+
+    # cv.imshow('sat',s)
+    # cv.imshow('h',s)
+    # cv.imshow('v',v)
+    # cv.waitKey()
+
+    return box_img
 
 def filled_boxes(im):
 
@@ -199,6 +302,3 @@ def verify_boxes(location, correspondance):
     # return the intersection over union value
     print(iou)
     return iou
-
-
-# main()
