@@ -1,5 +1,13 @@
+'''
+Library for all related to denoising
+'''
 import numpy as np
-import cv2 
+import cv2
+from skimage.metrics import structural_similarity as ssim
+
+def get_ssim(original, denoised):
+    return ssim(original, denoised, data_range=denoised.max() - denoised.min(), multichannel=True)
+
 
 def get_mse(original, denoised):
     '''
@@ -44,9 +52,11 @@ def find_best_denoise(img, display=False):
 
     psnr_noise_eval = sorted([(get_psnr(img, m), k) for k, m in methods.items()], key=lambda x: x[0], reverse=True)
     mad_noise_eval = sorted([(get_mad(img, m), k) for k, m in methods.items()], key=lambda x: x[0])
+    ssim_noise_eval = sorted([(get_ssim(img, m), k) for k, m in methods.items()], key=lambda x: x[0], reverse=True)
 
     print('psnr:', psnr_noise_eval, abs(psnr_noise_eval[0][0] -  psnr_noise_eval[1][0]))
     print('mad:', mad_noise_eval, abs(mad_noise_eval[0][0] -  mad_noise_eval[1][0]))
+    print('ssim:', ssim_noise_eval)
 
     '''
     Notes:
@@ -83,12 +93,12 @@ def find_best_denoise(img, display=False):
         cv2.waitKey(0)
 
 
-# for i in range(30):
-#     print(i)
-#     img_path = '../datasets/qsd1_w3/{:05d}.jpg'.format(i)
-#     img = cv2.imread(img_path)
-#     img_gray = cv2.imread(img_path, 0)
-#     img_v = cv2.cvtColor(img, cv2.COLOR_BGR2HSV)[:,:, 2]
+for i in range(30):
+    print(i)
+    img_path = '../datasets/qsd1_w3/{:05d}.jpg'.format(i)
+    img = cv2.imread(img_path)
+    img_gray = cv2.imread(img_path, 0)
+    img_v = cv2.cvtColor(img, cv2.COLOR_BGR2HSV)[:,:, 2]
 
-#     print('rgb')
-#     find_best_denoise(img, True)
+    print('rgb')
+    find_best_denoise(img, True)
