@@ -44,7 +44,7 @@ def main(queryset_name, descriptor, measure, k, similarity, background, bbox):
 
     bbox_list = []
 
-    for i in range(qs_number):
+    for i in range(qs_number): 
         path = ['..','datasets', queryset_name, '{:05d}'.format(i)+'.jpg']
         img = cv2.imread(os.path.join(*path), cv2.IMREAD_COLOR)
         if img is None:
@@ -54,8 +54,8 @@ def main(queryset_name, descriptor, measure, k, similarity, background, bbox):
         paintings = []
         if background:
             # masks = bg.method_canny(img)
-            _, masks = bg.hsv_thresh_method(img, 2)
-            # masks = bg.method_canny_multiple_paintings(img.copy())[1]
+            # _, masks = bg.hsv_thresh_method(img, 2)
+            masks = bg.method_canny_multiple_paintings(img.copy())[1]
 
             masks = sort_rects_lrtb(masks)
             for mask in masks:
@@ -65,10 +65,10 @@ def main(queryset_name, descriptor, measure, k, similarity, background, bbox):
         else:
             paintings = [img]
 
-        # Denoise image
-        denoised_imgs = [dn.denoise_img(painting) for painting in paintings]
-        paintings = [p['color'] for p in denoised_imgs]
-        ocr_images = [p['ocr'] for p in denoised_imgs]
+        # # Denoise image
+        # denoised_imgs = [dn.denoise_img(painting) for painting in paintings]
+        # paintings = [p['color'] for p in denoised_imgs]
+        # ocr_images = [p['ocr'] for p in denoised_imgs]
 
         if bbox:
             box_masks = [(1 - boxret.filled_boxes(painting.copy())[1]) \
@@ -102,8 +102,8 @@ def main(queryset_name, descriptor, measure, k, similarity, background, bbox):
 
     predicted = []
     for query_descript_dic in qs_descript_list:
-        predicted.append([cbir.get_histogram_top_k_similar(p[descriptor], \
-                        db_descript_list, descriptor, measure, similarity, k) \
+        predicted.append([cbir.get_top_k_multi(p, \
+                        db_descript_list, [descriptor], [1], measure, similarity, k) \
                         for p in query_descript_dic])
 
     # For generating submission pkl
