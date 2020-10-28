@@ -3,10 +3,32 @@ Library for all related to denoising
 '''
 import numpy as np
 import cv2
-from skimage.metrics import structural_similarity as ssim
+# from skimage.metrics import structural_similarity as ssim
 
-def get_ssim(original, denoised):
-    return ssim(original, denoised, data_range=denoised.max() - denoised.min(), multichannel=True)
+
+def denoise_img(img):
+    '''
+    Gets a possibly noisy image and returns:
+    if no need to denoise: img as is
+    else: a dicr with keys 'ocr', 'color'
+    '''
+    gauss = cv2.GaussianBlur(img,(5,5),0)
+    median = cv2.medianBlur(img, 5)
+        
+    imgs = {'color': img, 'ocr': img}
+    if get_mad(img, gauss) > 15: # maybe here call antonis function
+        if abs(get_psnr(img, gauss) - get_psnr(img, median)) < 1.5:
+            imgs['ocr'] = gauss
+            imgs['color'] = median
+        else:
+            imgs['ocr'] = imgs['color'] = gauss
+
+    return imgs
+
+
+
+# def get_ssim(original, denoised):
+#     return ssim(original, denoised, data_range=denoised.max() - denoised.min(), multichannel=True)
 
 
 def get_mse(original, denoised):
@@ -58,20 +80,6 @@ def find_best_denoise(img, display=False):
     print('mad:', mad_noise_eval, abs(mad_noise_eval[0][0] -  mad_noise_eval[1][0]))
     print('ssim:', ssim_noise_eval)
 
-    '''
-    Notes:
-    mad seems useful to decide if the image is noisy at all or not. Values sammler than 15 (or maybe 10) generally coincide with non-noisy images
-    Gaussian noise gets the best psnr practically eveytime, but when median is not that worse (maybe an absolute difference of 1.5) median probably
-    is better for colour based tasks (but it tends to destroy letters, so there gaussian (or nothing) is always prefferable). So, the algorithm for method 1 
-    would be smth like:
-
-    if mad > 15:
-        if abs(gass - median) < 15:
-            color_based = median
-            ocr = gaussian
-        else:
-            color_based = ocr = gaussian
-    '''
     if display:
         win_width = 400
 
@@ -93,12 +101,13 @@ def find_best_denoise(img, display=False):
         cv2.waitKey(0)
 
 
-for i in range(30):
-    print(i)
-    img_path = '../datasets/qsd1_w3/{:05d}.jpg'.format(i)
-    img = cv2.imread(img_path)
-    img_gray = cv2.imread(img_path, 0)
-    img_v = cv2.cvtColor(img, cv2.COLOR_BGR2HSV)[:,:, 2]
+# for i in range(30):
+#     print(i)
+#     img_path = '../datasets/qsd1_w3/{:05d}.jpg'.format(i)
+#     img = cv2.imread(img_path)
+#     # img_gray = cv2.imread(img_path, 0)
+#     # img_v = cv2.cvtColor(img, cv2.COLOR_BGR2HSV)[:,:, 2]
 
-    print('rgb')
-    find_best_denoise(img, True)
+#     # print('rgb')
+#     # find_best_denoise(img, True)
+#     imgs = denoise_img(img)
