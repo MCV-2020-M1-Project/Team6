@@ -14,6 +14,7 @@ import cbir
 from libs import descriptors as desc
 from libs import background_removal as bg
 from libs import box_retrieval as boxret
+from libs import denoising as dn
 
 
 def sort_rects_lrtb(rect_list):
@@ -63,6 +64,11 @@ def main(queryset_name, descriptor, measure, k, similarity, background, bbox):
                 paintings.append(img[v1[1]:v2[1], v1[0]:v2[0]])
         else:
             paintings = [img]
+
+        # Denoise image
+        denoised_imgs = [dn.denoise_img(painting) for painting in paintings]
+        paintings = [p['color'] for p in denoised_imgs]
+        ocr_images = [p['ocr'] for p in denoised_imgs]
 
         if bbox:
             box_masks = [(1 - boxret.filled_boxes(painting.copy())[1]) \

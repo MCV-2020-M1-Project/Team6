@@ -12,11 +12,11 @@ def denoise_img(img):
     if no need to denoise: img as is
     else: a dicr with keys 'ocr', 'color'
     '''
-    gauss = cv2.GaussianBlur(img,(5,5),0)
-    median = cv2.medianBlur(img, 5)
+    gauss = cv2.GaussianBlur(img,(3, 3),0)
+    median = cv2.medianBlur(img, 3)
         
     imgs = {'color': img, 'ocr': img}
-    if get_mad(img, gauss) > 15: # maybe here call antonis function
+    if get_mad(img, gauss) > 20: # maybe here call antonis function
         if abs(get_psnr(img, gauss) - get_psnr(img, median)) < 1.5:
             imgs['ocr'] = gauss
             imgs['color'] = median
@@ -24,7 +24,6 @@ def denoise_img(img):
             imgs['ocr'] = imgs['color'] = gauss
 
     return imgs
-
 
 
 # def get_ssim(original, denoised):
@@ -59,26 +58,25 @@ def get_psnr(original, denoised, max_value=255):
 
 
 def find_best_denoise(img, display=False):
+    k_size = 3
     methods = {}
     # normal
-    methods['normal'] = cv2.blur(img, (5,5)) 
+    methods['normal'] = cv2.blur(img, (k_size,k_size)) 
 
     # Gaussian
-    methods['gauss'] = cv2.GaussianBlur(img,(5,5),0)
+    methods['gauss'] = cv2.GaussianBlur(img,(k_size,k_size),0)
 
     # Median
-    methods['median'] = cv2.medianBlur(img, 5)
+    methods['median'] = cv2.medianBlur(img, k_size)
 
     # Bilateral
     # methods['bilateral'] = cv2.bilateralFilter(img, 5, 75, 75)
 
     psnr_noise_eval = sorted([(get_psnr(img, m), k) for k, m in methods.items()], key=lambda x: x[0], reverse=True)
     mad_noise_eval = sorted([(get_mad(img, m), k) for k, m in methods.items()], key=lambda x: x[0])
-    ssim_noise_eval = sorted([(get_ssim(img, m), k) for k, m in methods.items()], key=lambda x: x[0], reverse=True)
 
     print('psnr:', psnr_noise_eval, abs(psnr_noise_eval[0][0] -  psnr_noise_eval[1][0]))
     print('mad:', mad_noise_eval, abs(mad_noise_eval[0][0] -  mad_noise_eval[1][0]))
-    print('ssim:', ssim_noise_eval)
 
     if display:
         win_width = 400
@@ -109,5 +107,5 @@ def find_best_denoise(img, display=False):
 #     # img_v = cv2.cvtColor(img, cv2.COLOR_BGR2HSV)[:,:, 2]
 
 #     # print('rgb')
-#     # find_best_denoise(img, True)
+#     find_best_denoise(img, True)
 #     imgs = denoise_img(img)
