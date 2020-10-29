@@ -4,9 +4,10 @@ from skimage.feature import local_binary_pattern
 
 
 def get_lbp(img, radius = 3., n_points = None, METHOD = 'uniform'):
-    n_points = 6*radius if n_points is None else n_points
+    n_points = 8*radius if n_points is None else n_points
     lbim = local_binary_pattern(img, n_points, radius, METHOD)
     return np.uint8(255*(lbim - lbim.min())/(lbim.max() - lbim.min()))
+    return np.uint8(lbim)
 
 
 def linear_stretch(im, hist_concat):
@@ -235,6 +236,34 @@ def get_multiresolution_hist(img, mask=None):
 
     return hist
 
+def get_gray_multiresolution_hist(img, mask=None):
+
+    #get hist of the whole img
+
+    hist = get_gray_hist(img, mask)
+
+    #get hist of the 2x2 partition
+    tiles = get_tile_partition(img,2,2)
+    mask_tiled = None 
+
+    if mask is None:
+        tiles_hist = [get_gray_hist(tiles[i], None) for i in range(len(tiles))]
+    else:
+        mask_tiled = get_tile_partition(mask.copy(),2,2)
+        tiles_hist = [get_gray_hist(tiles[i], mask_tiled[i]) for i in range(len(tiles))]
+    hist = np.concatenate((hist, *tiles_hist))
+
+    #get hist of the 4x4 partition
+    tiles = get_tile_partition(img,4,4)
+    if mask is None:
+        tiles_hist = [get_gray_hist(tiles[i], None) for i in range(len(tiles))]
+    else:
+        mask_tiled = get_tile_partition(mask,4,4)
+        tiles_hist = [get_gray_hist(tiles[i], mask_tiled[i]) for i in range(len(tiles))]
+    hist = np.concatenate((hist, *tiles_hist))
+
+    return hist
+
 def get_hs_concat_hist_st(img, mask=None):
     ''' Paramenters: img (color image)
         Returns: numpyarray with the 3 HSV histograms concatenated '''
@@ -275,5 +304,23 @@ def get_descriptors(img, mask=None):
     descript_dic['hs_multiresolution'] = get_hs_multiresolution_hist(img, mask)
     descript_dic['bgr_multiresolution'] = get_multiresolution_hist(img, mask)
     descript_dic['hsv_multiresolution'] = get_multiresolution_hist(cv2.cvtColor(img, cv2.COLOR_BGR2HSV), mask)
+
+    lbp_im = get_lbp(cv2.cvtColor(img, cv2.COLOR_BGR2GRAY))
+    descript_dic['lbp_multiresolution'] = get_gray_multiresolution_hist(lbp_im, mask)
+    descript_dic['lbp_hist'] = get_gray_hist(lbp_im, mask)
     return descript_dic
 
+# import distance_metrics as dist 
+
+# im = cv2.imread('../datasets/qsd1_w1/00000.jpg', 0)
+# lbim = get_lbp(im)
+
+# cv2.imshow('im', lbim)
+# cv2.waitKey(0)
+
+# h = get_gray_multiresolution_hist(lbim)
+# # h = get_bgr_concat_hist(lbim)
+# print('hi')
+# print(h.shape)
+
+# # dist.display_comparison(h,h)
