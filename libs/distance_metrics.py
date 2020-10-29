@@ -11,10 +11,95 @@ Metrics implemented:
 
 201007 - For now assuming descriptor is a 1d numpy float array
 '''
-import random as rnd
+from difflib import SequenceMatcher
 import numpy as np
 import cv2
-import pickle as pkl
+
+def gestalt(a, b):
+    '''
+    Returns difference ration between two strings
+    '''
+    return 1 - SequenceMatcher(None, a, b).ratio()
+
+
+def longest_common_subsequence(X, Y, m, n):
+    '''
+    From: https://www.geeksforgeeks.org/python-program-for-longest-common-subsequence/
+    '''
+    if m == 0 or n == 0:
+        return 0
+    elif X[m-1] == Y[n-1]:
+        return 1 + longest_common_subsequence(X, Y, m-1, n-1)
+    else:
+        return max(longest_common_subsequence(X, Y, m, n-1), longest_common_subsequence(X, Y, m-1, n))
+
+
+def longest_common_substring(X, Y, m, n):
+    '''
+    From: https://www.geeksforgeeks.org/longest-common-substring-dp-29/
+    '''
+    LCSuff = [[0 for k in range(n+1)] for l in range(m+1)]
+
+    result = 0
+
+    for i in range(m + 1):
+        for j in range(n + 1):
+            if i == 0 or j == 0:
+                LCSuff[i][j] = 0
+            elif X[i-1] == Y[j-1]:
+                LCSuff[i][j] = LCSuff[i-1][j-1] + 1
+                result = max(result, LCSuff[i][j])
+            else:
+                LCSuff[i][j] = 0
+    return result
+
+
+def levenshtein(str1, str2):
+    '''
+    From: https://es.wikipedia.org/wiki/Distancia_de_Levenshtein#El_algoritmo 
+    '''
+    d=dict()
+    for i in range(len(str1)+1):
+        d[i]=dict()
+        d[i][0]=i
+    for i in range(len(str2)+1):
+        d[0][i] = i
+    for i in range(1, len(str1)+1):
+        for j in range(1, len(str2)+1):
+            d[i][j] = min(d[i][j-1]+1, d[i-1][j]+1, d[i-1][j-1]+(not str1[i-1] == str2[j-1]))
+    return d[len(str1)][len(str2)]
+
+
+def hamming(string_a, string_b):
+    '''
+    From: my brain (that's why its so lame)
+    '''
+    if len(string_a) != len(string_b):
+        print('Error: String lenghts should match')
+        return -1
+    result = 0
+    for a, b in zip(string_a, string_b):
+        if a.lower() != b.lower():
+            result += 1
+    return result / len(string_a)
+
+
+def compare_text(a, b):
+    '''
+    Just trying out a bunch of measures, the lower they are the better
+    (still have to thing how to use the longsest comon stuff)
+
+    The best one is porbably gestalt (the one python uses in sequence matcher)
+    '''
+    print(a, b, len(a), len(b))
+    results = []
+    results.append(hamming(a, b))
+    results.append(levenshtein(a, b))
+    results.append( max(len(a), len(b))-longest_common_substring(a,b, len(a), len(b)))
+    results.append( max(len(a), len(b))-longest_common_subsequence(a,b, len(a), len(b)))
+    results.append(round(gestalt(a, b), 2))
+
+    return results
 
 
 def get_euclidean_distance(descriptor_a, descriptor_b):
@@ -128,7 +213,7 @@ def display_comparison(a, b):
     return
 
 
-def get_all_measures(a, b, display=False):
+def get_all_measures(a, b, display=False, text=False):
     '''
     Return a dictionary with all available measures. Keys are:
     * 'eucl': Euclidean distance
@@ -138,19 +223,25 @@ def get_all_measures(a, b, display=False):
     * 'hell_ker': Hellinger kernel (similarity)
     * 'corr': correlation
     '''
-    measures = {
-                # 'eucl': get_euclidean_distance(a, b),
-                'l1': get_l1_distance(a, b),
-                'x2': get_x2_distance(a, b),
-                # 'h_inter': get_hist_intersection(a, b),
-                # 'hell_ker': get_hellinger_kernel(a, b), 
-                # 'corr': get_correlation(a, b),
-                # 'chisq': get_chisq_distance(a, b)
-                }
+    if text:
+        measures =  {
+                    'gestalt': gestalt(a, b),
+                    'levenshtein':levenshtein(a,b),
+                    'hamming': hamming(a, b)
+                    }
+    else:
+        measures =  {
+                    # 'eucl': get_euclidean_distance(a, b),
+                    'l1': get_l1_distance(a, b),
+                    'x2': get_x2_distance(a, b),
+                    # 'h_inter': get_hist_intersection(a, b),
+                    # 'hell_ker': get_hellinger_kernel(a, b), 
+                    # 'corr': get_correlation(a, b),
+                    # 'chisq': get_chisq_distance(a, b)
+                    }
 
     if display:
         for k, v in measures.items():
             print(k + ':', '{:.2f}'.format(v))
 
     return measures
-
