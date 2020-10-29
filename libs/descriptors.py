@@ -1,5 +1,12 @@
 import cv2
 import numpy as np
+from skimage.feature import local_binary_pattern
+
+
+def get_lbp(img, radius = 3., n_points = None, METHOD = 'uniform'):
+    n_points = 6*radius if n_points is None else n_points
+    lbim = local_binary_pattern(img, n_points, radius, METHOD)
+    return np.uint8(255*(lbim - lbim.min())/(lbim.max() - lbim.min()))
 
 
 def linear_stretch(im, hist_concat):
@@ -50,7 +57,7 @@ def get_gray_hist(img, mask=None):
     '''Paramenters: img (color image)
         Returns: hist (grayscale histogram) '''
 
-    gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+    gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY) if len(img.shape) == 3 else img
     hist = cv2.calcHist([gray], [0], mask, [256], [0,256])
 
     cv2.normalize(hist, hist, norm_type=cv2.NORM_L2, alpha=1.)
@@ -269,3 +276,4 @@ def get_descriptors(img, mask=None):
     descript_dic['bgr_multiresolution'] = get_multiresolution_hist(img, mask)
     descript_dic['hsv_multiresolution'] = get_multiresolution_hist(cv2.cvtColor(img, cv2.COLOR_BGR2HSV), mask)
     return descript_dic
+
