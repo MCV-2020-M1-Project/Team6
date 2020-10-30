@@ -4,6 +4,7 @@ import pickle as pkl
 import numpy as np
 import os, os.path
 import descriptors
+from matplotlib import pyplot as plt
 
 def test():
     files_img = glob.glob(f'../datasets/qsd1_w2/*.jpg')
@@ -68,15 +69,12 @@ def get_boxes(im):
     him, wim = im.shape[:2]
 
     cv.imshow('testingb:',im)
-    cv.waitKey(0)
-    
+    # cv.waitKey(0)
+    img=im
     im = linear_stretch( im, descriptors.get_bgr_concat_hist(im))
-    #im = cv.cvtColor(im, cv.COLOR_BGR2HSV)
-    #b, g, r = cv.split(im)
 
     #gradients
     kernel = np.ones((7,7),np.float32)/49
-    #kernel = np.ones((5,5),np.float32)/25
     im = cv.filter2D(im,-1,kernel)
     #cv.imshow('blur:', im)
 
@@ -85,7 +83,7 @@ def get_boxes(im):
     tol = extrem*0.35
 
     lap = 255 * np.uint8(abs(laplacian[:, :, 0])>tol) # * np.uint8(abs(laplacian[:, :, 1])>tol) * np.uint8(abs(laplacian[:, :,2])>tol)
-    cv.imshow('lap:',lap)
+    #cv.imshow('lap:',lap)
     mask = np.zeros_like(lap)
     
     #cv.imshow('corte:',corte)
@@ -98,7 +96,6 @@ def get_boxes(im):
     kernel = cv.getStructuringElement(cv.MORPH_RECT, (wim//10,1))
     mask = cv.morphologyEx(mask, cv.MORPH_OPEN, kernel)
     #cv.imshow('morf:',mask)
-
     
     contours = cv.findContours(mask, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_NONE)[0]
     mask = cv.cvtColor(mask, cv.COLOR_GRAY2BGR)
@@ -142,7 +139,7 @@ def get_boxes(im):
 
     the_rect = aux[0]
     if len(aux)>1:
-        the_rect = choose_best_rectangle(aux)
+        the_rect = choose_best_rectangle(aux, laplacian)
     
     #expand_rect(aux[0])
 
@@ -151,13 +148,33 @@ def get_boxes(im):
     kernel = cv.getStructuringElement(cv.MORPH_RECT, (wim//25,10))
     box_mask = cv.morphologyEx(box_mask, cv.MORPH_DILATE, kernel, iterations=2)
 
-    cv.imshow('ocr_toma',im[:,:,1]*box_mask)
+    cv.imshow('result:',img[:,:,1]*box_mask)
     cv.waitKey(0)
     return box_mask
 
-def choose_best_rectangle(rects):
+def choose_best_rectangle(rects,laplacian):
     #TODO:
-    return rects[0]
+    the_rect = None
+    min_sumita = np.inf
+    for rect in rects:
+        again = laplacian[rect[1]:rect[1]+rect[3], rect[0]:rect[0]+rect[2]]
+        vector = again[again.shape[0]//2, :, :]
+        cv.normalize(vector,vector,1,norm_type=cv.NORM_L2)
+        # vector[:,0] = vector[:,0]/abs(np.max(vector[:,0]))
+        # vector[:,1] = vector[:,1]/abs(np.max(vector[:,1]))
+        # vector[:,2] = vector[:,2]/abs(np.max(vector[:,2]))
+        sumita = np.sum(abs(vector[:,0]-vector[:,1]) + abs(vector[:,0]-vector[:,2]) + abs(vector[:,1]-vector[:,2]))/len(vector)
+        if sumita < min_sumita:
+            the_rect = rect
+            min_sumita = sumita
+        print(sumita)
+        print(vector.shape)
+
+        cv.imshow('a ver:', again*255)
+        plt.plot(again[again.shape[0]//2, :])
+        cv.waitKey(1)
+        # plt.show()
+    return the_rect
 
 def expand_rect(rects):
     #TODO:
@@ -336,13 +353,13 @@ def verify_boxes(location, correspondance):
 
 
 # reading images from queryset
-path = ['..', '..','datasets', 'qsd1_w2']
+path = ['..', '..','datasets', 'qsd1_w3']
 qs_number = len([name for name in os.listdir(os.path.join(*path)) \
     if '.jpg' in name])
 
 
 for i in range(qs_number):
-    path = ['..', '..','datasets', 'qsd1_w2', '{:05d}'.format(i)+'.jpg']
+    path = ['..', '..','datasets', 'qsd1_w3', '{:05d}'.format(i)+'.jpg']
     img= cv.imread(os.path.join(*path), cv.IMREAD_COLOR)
     img = cv.resize(img, (500, 500*img.shape[0]//img.shape[1]))
     get_boxes(img)
