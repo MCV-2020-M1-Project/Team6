@@ -3,7 +3,7 @@ import glob
 import pickle as pkl
 import numpy as np
 import os, os.path
-import descriptors
+from libs import descriptors
 from matplotlib import pyplot as plt
 
 def test():
@@ -352,14 +352,14 @@ def verify_boxes(location, correspondance):
     return iou
 
 
-# reading images from queryset
-path = ['..', '..','datasets', 'qsd1_w3']
-qs_number = len([name for name in os.listdir(os.path.join(*path)) \
-    if '.jpg' in name])
-
-
-for i in range(qs_number):
-    path = ['..', '..','datasets', 'qsd1_w3', '{:05d}'.format(i)+'.jpg']
-    img= cv.imread(os.path.join(*path), cv.IMREAD_COLOR)
-    img = cv.resize(img, (500, 500*img.shape[0]//img.shape[1]))
-    get_boxes(img)
+# # reading images from queryset
+# path = ['..', '..','datasets', 'qsd1_w3']
+# qs_number = len([name for name in os.listdir(os.path.join(*path)) \
+#     if '.jpg' in name])
+#
+#
+# for i in range(qs_number):
+#     path = ['..', '..','datasets', 'qsd1_w3', '{:05d}'.format(i)+'.jpg']
+#     img= cv.imread(os.path.join(*path), cv.IMREAD_COLOR)
+#     img = cv.resize(img, (500, 500*img.shape[0]//img.shape[1]))
+#     get_boxes(img)
