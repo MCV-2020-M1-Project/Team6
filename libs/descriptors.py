@@ -2,6 +2,14 @@ import cv2
 import numpy as np
 from skimage.feature import local_binary_pattern
 
+def get_dct(img, N=100):
+    imf = np.float32(img)/255.0
+    freq =  cv2.dct(imf)
+    ni, nj = freq.shape
+    subset = freq[:N, :N]
+
+    return subset.flatten()
+
 
 def get_lbp(img, radius = 3., n_points = None, METHOD = 'uniform'):
     n_points = 8*radius if n_points is None else n_points
@@ -340,19 +348,18 @@ def get_descriptors(img, mask=None):
         mask_tiled = get_tile_partition(mask,2,2)
 
     descript_dic['hs_multi_hist'] = get_hs_multi_hist(tiles, mask_tiled)
-    descript_dic['hs_multiresolution'] = get_hs_multiresolution_hist(img, mask)
-    descript_dic['bgr_multiresolution'] = get_multiresolution_hist(img, mask)
+    # descript_dic['hs_multiresolution'] = get_hs_multiresolution_hist(img, mask)
+    # descript_dic['bgr_multiresolution'] = get_multiresolution_hist(img, mask)
     descript_dic['hsv_multiresolution'] = get_multiresolution_hist(cv2.cvtColor(img, cv2.COLOR_BGR2HSV), mask)
 
-    lbp_im = get_lbp(cv2.cvtColor(img, cv2.COLOR_BGR2GRAY))
-    descript_dic['lbp_multiresolution'] = get_gray_multiresolution_hist(lbp_im, mask)
-    descript_dic['lbp_hist'] = get_gray_hist(lbp_im, mask)
+    # lbp_im = get_lbp(cv2.cvtColor(img, cv2.COLOR_BGR2GRAY))
+    # # descript_dic['lbp_multiresolution'] = get_gray_multiresolution_hist(lbp_im, mask)
+    # descript_dic['lbp_hist'] = get_gray_hist(lbp_im, mask)
+    descript_dic['dct-200'] = get_dct(cv2.cvtColor(img, cv2.COLOR_BGR2GRAY), 100)
+    descript_dic['dct-150'] = get_dct(cv2.cvtColor(img, cv2.COLOR_BGR2GRAY), 150)
     return descript_dic
 
 # import distance_metrics as dist 
-
-# im = cv2.imread('../datasets/qsd1_w1/00000.jpg', 0)
-# lbim = get_lbp(im)
 
 # cv2.imshow('im', lbim)
 # cv2.waitKey(0)
