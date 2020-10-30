@@ -3,7 +3,7 @@ import glob
 import pickle as pkl
 import numpy as np
 import os, os.path
-import descriptors
+from libs import descriptors
 from matplotlib import pyplot as plt
 
 def test():
@@ -66,11 +66,12 @@ def check_box_fill(im, x, y, w, h):
 
 def get_boxes(im):
 
+    original_size = im.shape
+    im = cv.resize(im, (500, 500*im.shape[0]//im.shape[1]))
+
     him, wim = im.shape[:2]
 
-    cv.imshow('testingb:',im)
-    # cv.waitKey(0)
-    img=im
+       # cv.waitKey(0)
     im = linear_stretch( im, descriptors.get_bgr_concat_hist(im))
 
     #gradients
@@ -134,7 +135,7 @@ def get_boxes(im):
     for rect in aux:
         cv.rectangle(draw, (rect[0],rect[1]), (rect[0]+rect[2],rect[3]+rect[1]), (0,255,0))
 
-    cv.imshow('rect:',draw)
+    # cv.imshow('rect:',draw)
 
 
     the_rect = aux[0]
@@ -144,16 +145,24 @@ def get_boxes(im):
     #expand_rect(aux[0])
 
     box_mask = np.zeros_like(mask[:,:,0])
-    box_mask[the_rect[1]:the_rect[1]+the_rect[3], the_rect[0]:the_rect[0]+the_rect[2]] = np.ones((the_rect[3],the_rect[2]), np.uint8)
+    box_mask[the_rect[1]:the_rect[1]+the_rect[3], the_rect[0]:the_rect[0]+the_rect[2]] = np.ones((the_rect[3],the_rect[2]), dtype=np.uint8)
     kernel = cv.getStructuringElement(cv.MORPH_RECT, (wim//25,10))
     box_mask = cv.morphologyEx(box_mask, cv.MORPH_DILATE, kernel, iterations=2)
 
-    cv.imshow('result:',img[:,:,1]*box_mask)
-    cv.waitKey(0)
+    # cv.imshow('imbox_mask', 255*box_mask)
+    # cv.waitKey(0)
+    box_mask = cv.resize(box_mask, tuple(original_size[:2][::-1]))
+    # print('SIZE:', print(box_mask.shape))
+    # cv.imshow('result:',img[:,:,1]*box_mask)
+    # cv.waitKey(0)
+
+    # print(box_mask.shape)
+    # print(box_mask.max())
+    # print(box_mask.min())
+    # print(box_mask.dtype)
     return box_mask
 
 def choose_best_rectangle(rects,laplacian):
-    #TODO:
     the_rect = None
     min_sumita = np.inf
     for rect in rects:
@@ -167,12 +176,12 @@ def choose_best_rectangle(rects,laplacian):
         if sumita < min_sumita:
             the_rect = rect
             min_sumita = sumita
-        print(sumita)
-        print(vector.shape)
+        # print(sumita)
+        # print(vector.shape)
 
-        cv.imshow('a ver:', again*255)
-        plt.plot(again[again.shape[0]//2, :])
-        cv.waitKey(1)
+        # cv.imshow('a ver:', again*255)
+        # plt.plot(again[again.shape[0]//2, :])
+        # cv.waitKey(1)
         # plt.show()
     return the_rect
 
@@ -353,13 +362,13 @@ def verify_boxes(location, correspondance):
 
 
 # reading images from queryset
-path = ['..', '..','datasets', 'qsd1_w3']
-qs_number = len([name for name in os.listdir(os.path.join(*path)) \
-    if '.jpg' in name])
+# path = ['..', '..','datasets', 'qsd1_w3']
+# qs_number = len([name for name in os.listdir(os.path.join(*path)) \
+#     if '.jpg' in name])
 
 
-for i in range(qs_number):
-    path = ['..', '..','datasets', 'qsd1_w3', '{:05d}'.format(i)+'.jpg']
-    img= cv.imread(os.path.join(*path), cv.IMREAD_COLOR)
-    img = cv.resize(img, (500, 500*img.shape[0]//img.shape[1]))
-    get_boxes(img)
+# for i in range(qs_number):
+#     path = ['..', '..','datasets', 'qsd1_w3', '{:05d}'.format(i)+'.jpg']
+#     img= cv.imread(os.path.join(*path), cv.IMREAD_COLOR)
+#     img = cv.resize(img, (500, 500*img.shape[0]//img.shape[1]))
+#     get_boxes(img)
