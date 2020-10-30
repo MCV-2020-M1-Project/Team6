@@ -3,10 +3,10 @@ import glob
 import pickle as pkl
 import numpy as np
 import os, os.path
-import descriptors
-from matplotlib import pyplot as plt
+import descriptor_lib
 
 def test():
+
     files_img = glob.glob(f'../datasets/qsd1_w2/*.jpg')
 
     # im = cv.cvtColor(im,cv.COLOR_BGR2GRAY)
@@ -66,154 +66,106 @@ def check_box_fill(im, x, y, w, h):
 
 def get_boxes(im):
 
-    him, wim = im.shape[:2]
+    kernel = np.ones((10, 10), np.uint8)
+    # im = cv.morphologyEx(im, cv.MORPH_OPEN, kernel)
 
-    cv.imshow('testingb:',im)
-    # cv.waitKey(0)
-    img=im
-    im = linear_stretch( im, descriptors.get_bgr_concat_hist(im))
+    im = linear_stretch( im, descriptor_lib.get_bgr_concat_hist(im))
 
-    #gradients
-    kernel = np.ones((7,7),np.float32)/49
-    im = cv.filter2D(im,-1,kernel)
-    #cv.imshow('blur:', im)
+    b, g, r = cv.split(im)
+    b = np.float64(b)
+    g = np.float64(g)
+    r = np.float64(r)
 
-    laplacian = cv.Laplacian(im,cv.CV_64F)
-    extrem = (abs(np.min(laplacian))+abs(np.max(laplacian)))//2
-    tol = extrem*0.35
+    mask_matrix = np.zeros_like(im)
+    tol = 30
+    #mask_matrix = np.uint8(b+g+r<tol) + np.uint8(b+g+r>(255-tol)*3)
+    mask_matrix = np.uint8(b < tol) * np.uint8(g < tol) * np.uint8(r < tol) + np.uint8(b > (255-tol)) * np.uint8(g > (255-tol)) * np.uint8(r > (255-tol))
+    #mask_matrix *= np.uint8(img[:, :, 0] > 100) * np.uint8(img[:, :, 1] > 100) * np.uint8(img[:, :, 2] > 100) 
 
-    lap = 255 * np.uint8(abs(laplacian[:, :, 0])>tol) # * np.uint8(abs(laplacian[:, :, 1])>tol) * np.uint8(abs(laplacian[:, :,2])>tol)
-    #cv.imshow('lap:',lap)
-    mask = np.zeros_like(lap)
+    mask = mask_matrix.astype(np.uint8)*255
     
-    #cv.imshow('corte:',corte)
-    mask[int(him*0.05):-int(him*0.05),int(wim*0.2):-int(wim*0.2)] = lap[int(him*0.05):-int(him*0.05),int(wim*0.2):-int(wim*0.2)]
 
-    kernel = cv.getStructuringElement(cv.MORPH_RECT, (wim//5,4))
-    mask = cv.morphologyEx(mask, cv.MORPH_CLOSE, kernel)
-    kernel = cv.getStructuringElement(cv.MORPH_RECT, (2,6))
-    mask = cv.morphologyEx(mask, cv.MORPH_CLOSE, kernel)
-    kernel = cv.getStructuringElement(cv.MORPH_RECT, (wim//10,1))
-    mask = cv.morphologyEx(mask, cv.MORPH_OPEN, kernel)
-    #cv.imshow('morf:',mask)
+    s_in = cv.morphologyEx(mask, cv.MORPH_OPEN, kernel)
+    _, s_out = cv.threshold(s_in, 30, 250, cv.THRESH_BINARY_INV)
+    shape = im.shape
+    h = shape[0] // 50  # 50
+    w = shape[1] // 5
+    kernel_eliminate_small = np.ones((h, w), np.uint8)
+    s_out = cv.morphologyEx(s_out, cv.MORPH_OPEN, kernel_eliminate_small)
+    s_out = cv.morphologyEx(s_out, cv.MORPH_CLOSE, kernel_eliminate_small)
+
+    contours, _ = cv.findContours(s_out, cv.RETR_LIST, cv.CHAIN_APPROX_SIMPLE)
+
+    max_fill = 0
+    location = [0, 0, 0, 0]
+
+    rect = s_out.copy()
+    rect_list = []
+
     
-    contours = cv.findContours(mask, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_NONE)[0]
-    mask = cv.cvtColor(mask, cv.COLOR_GRAY2BGR)
-    draw = mask.copy()
-    rectangles=[]
-    for blob in contours:
-        x, y, w, h = cv.boundingRect(blob)
-        fill = check_box_fill(mask[:,:,0], x, y, w, h)[2]
-        if h>5 and w*h<wim*him*0.35 and h/w<0.8 and fill > 0.5:
-            cx = x+w//2
-            cy = y+h//2
-            if wim*0.2>abs(wim//2-cx) and him*0.17<abs(him//2-cy):
-                rectangles.append((x,y,w,h))
-                cv.rectangle(draw, (x,y), (x+w,y+h), (0,0,255))
 
-    rectangles = sorted(rectangles, key=lambda x: x[1])
-    aux = []
-    if len(rectangles) == 1:
-        aux = rectangles
-    else:
-        i = 0
-        while i < len(rectangles)-1:
-            if abs(rectangles[i][1]+rectangles[i][3]-rectangles[i+1][1])<15:
-                y = rectangles[i][1] 
-                x = rectangles[i][0] if rectangles[i][0] < rectangles[i+1][0] else rectangles[i+1][0]
-                h = abs(y - rectangles[i+1][1]-rectangles[i+1][3])
-                w = rectangles[i][2] if rectangles[i][2] > rectangles[i+1][2] else rectangles[i+1][2]
-                aux.append((x,y,w,h))
-                i+=1
-            else:
-                aux.append(rectangles[i])
-            if i+1 == len(rectangles)-1:
-                aux.append(rectangles[i+1])
-            i+=1
+    for i, frame in enumerate(contours):
+        a = np.array([tuple(x[0]) for x in frame])
+        x, y, w, h = cv.boundingRect(a)
+        test = im.copy()
+        if abs(w*h-im.shape[0]*im.shape[1]) > im.shape[0]*im.shape[1]*0.03:
+            rect_list.append(cv.boundingRect(a))
+            crop_img, count_whites, fill = check_box_fill(s_out, x, y, w, h)
+            if h < w/3:
+                cv.rectangle(test, (x, y), (x + w, y + h), (0, 0, 255), 5)
+                location = [x, y, x + w, y + h]
+    shape = im.shape
+    box_img = np.zeros(shape=(shape[0], shape[1]))
+    box_img[location[1]:location[3], location[0]:location[2]] = 1
 
-    for rect in aux:
-        cv.rectangle(draw, (rect[0],rect[1]), (rect[0]+rect[2],rect[3]+rect[1]), (0,255,0))
+    # for i, frame in enumerate(contours):
+    #     a = np.array([tuple(x[0]) for x in frame])
+    #     x, y, w, h = cv.boundingRect(a)
+    #     test = im.copy()
+    #     cv.rectangle(test, (x, y), (x + w, y + h), (0, 0, 255), 5)
+    #     rect_list.append(cv.boundingRect(a))
+    #     cv.imshow('out',test)
+    #     cv.waitKey()
+    #     crop_img, count_whites, fill = check_box_fill(s_out, x, y, w, h)
+    #     rect = cv.rectangle(rect, (x, y), (x + w, y + h), (255, 0, 0), 5)
+    #     im = cv.rectangle(im, (x, y), (x + w, y + h), (0, 0, 255), 5)
+    #     # print(f'imsize={crop_img.size}, minimal={s_out.size / 70}')
 
-    cv.imshow('rect:',draw)
+    #     if crop_img.size > (s_out.size / 70) and h < w:
+    #         if fill > max_fill:
+    #             max_fill = fill
+    #             location = [x, y, x + w, y + h]
+
+    shape = im.shape
+    box_img = np.zeros(shape=(shape[0], shape[1]))
+    box_img[location[1]:location[3], location[0]:location[2]] = 1
+
+    #s_in, box_img.astype(np.uint8), rect, im, location
 
 
-    the_rect = aux[0]
-    if len(aux)>1:
-        the_rect = choose_best_rectangle(aux, laplacian)
+    # cv.imshow('b',b)
+    # cv.imshow('g',g)
+    # cv.imshow('r',r)
+    # cv.waitKey()
+
+    # hsv = cv.cvtColor(im, cv.COLOR_BGR2HSV)
+    # h, s, v = cv.split(hsv)
     
-    #expand_rect(aux[0])
+    # mask_matrix = np.zeros_like(im)
+    # tol = 50
+    # mask_matrix = np.uint8(v<tol) + np.uint8(v>(255-tol))
 
-    box_mask = np.zeros_like(mask[:,:,0])
-    box_mask[the_rect[1]:the_rect[1]+the_rect[3], the_rect[0]:the_rect[0]+the_rect[2]] = np.ones((the_rect[3],the_rect[2]), np.uint8)
-    kernel = cv.getStructuringElement(cv.MORPH_RECT, (wim//25,10))
-    box_mask = cv.morphologyEx(box_mask, cv.MORPH_DILATE, kernel, iterations=2)
+    # mask = mask_matrix.astype(np.uint8)*255
+    # cv.imshow('im',im)
+    # cv.imshow('mask',mask)
+    # cv.waitKey()
 
-    cv.imshow('result:',img[:,:,1]*box_mask)
-    cv.waitKey(0)
-    return box_mask
+    # cv.imshow('sat',s)
+    # cv.imshow('h',s)
+    # cv.imshow('v',v)
+    # cv.waitKey()
 
-def choose_best_rectangle(rects,laplacian):
-    #TODO:
-    the_rect = None
-    min_sumita = np.inf
-    for rect in rects:
-        again = laplacian[rect[1]:rect[1]+rect[3], rect[0]:rect[0]+rect[2]]
-        vector = again[again.shape[0]//2, :, :]
-        cv.normalize(vector,vector,1,norm_type=cv.NORM_L2)
-        # vector[:,0] = vector[:,0]/abs(np.max(vector[:,0]))
-        # vector[:,1] = vector[:,1]/abs(np.max(vector[:,1]))
-        # vector[:,2] = vector[:,2]/abs(np.max(vector[:,2]))
-        sumita = np.sum(abs(vector[:,0]-vector[:,1]) + abs(vector[:,0]-vector[:,2]) + abs(vector[:,1]-vector[:,2]))/len(vector)
-        if sumita < min_sumita:
-            the_rect = rect
-            min_sumita = sumita
-        print(sumita)
-        print(vector.shape)
-
-        cv.imshow('a ver:', again*255)
-        plt.plot(again[again.shape[0]//2, :])
-        cv.waitKey(1)
-        # plt.show()
-    return the_rect
-
-def expand_rect(rects):
-    #TODO:
-    return None
-
-def linear_stretch(im, hist_concat):
-    if len(hist_concat) == 768:
-        # Split concantenated hist
-        hist = np.zeros((3, 256))
-        hist[0] = np.transpose(hist_concat[:256])
-        hist[1] = np.transpose(hist_concat[256:512])
-        hist[2] = np.transpose(hist_concat[512:])
-    elif len(hist_concat) == 512:
-        # Split concantenated hist
-        hist = np.zeros((2, 256))
-        hist[0] = np.transpose(hist_concat[:256])
-        hist[1] = np.transpose(hist_concat[256:512])
-    else:
-        hist = np.transpose(hist_concat)
-    thresh = 0.0025
-
-    for c in range(hist.shape[0]):
-        ini = 0
-        end = 255
-        while(hist[c][ini] < thresh):
-            ini += 1
-        while(hist[c][end] < thresh):    
-            end -= 1
-
-        a = np.zeros_like(im[:, :, c], dtype=np.float64)
-        a[:][:] = im[:, :, c]
-        a = np.subtract(a, ini, out=np.zeros_like(a), where=((a - ini)>0), dtype=np.float64)
-        if end == ini:
-            end+=1
-        a =  a / (end - ini)
-        a = np.multiply(a, 255 , out=np.ones_like(a)*255, where=(a *255<255))
-        im[:, :, c] = np.uint8(a[:][:])
-
-    return im
+    return box_img
 
 def filled_boxes(im):
 
@@ -352,14 +304,61 @@ def verify_boxes(location, correspondance):
     return iou
 
 
-# reading images from queryset
-path = ['..', '..','datasets', 'qsd1_w3']
-qs_number = len([name for name in os.listdir(os.path.join(*path)) \
-    if '.jpg' in name])
+def linear_stretch(im, hist_concat):
+    if len(hist_concat) == 768:
+        # Split concantenated hist
+        hist = np.zeros((3, 256))
+        hist[0] = np.transpose(hist_concat[:256])
+        hist[1] = np.transpose(hist_concat[256:512])
+        hist[2] = np.transpose(hist_concat[512:])
+    elif len(hist_concat) == 512:
+        # Split concantenated hist
+        hist = np.zeros((2, 256))
+        hist[0] = np.transpose(hist_concat[:256])
+        hist[1] = np.transpose(hist_concat[256:512])
+    else:
+        hist = np.transpose(hist_concat)
+
+    # print('Descr size', hist.shape)
+
+    num_pixels = im.shape[0] * im.shape[1]
+    thresh = 0.00025
+    for c in range(hist.shape[0]):
+        ini = 0
+        end = 255
+        #print(hist[0].shape)
+        # print(hist[c][ini], 'ini = ', ini)
+        while(hist[c][ini] < thresh):
+            #print(hist[c][ini], 'ini = ', ini)
+            ini += 1
+        
+        # print(hist[c][end], 'end = ', end)
+        while(hist[c][end] < thresh):
+            # print(hist[c][end], 'end = ', end)    
+            end -= 1
+
+        a = np.zeros_like(im[:, :, c], dtype=np.float64)
+        a[:][:] = im[:, :, c]
+        a = np.subtract(a, ini, out=np.zeros_like(a), where=((a - ini)>0), dtype=np.float64)
+        if end == ini:
+            end+=1
+        a =  a / (end - ini)
+        a = np.multiply(a, 255 , out=np.ones_like(a)*255, where=(a *255<255))
+        im[:, :, c] = np.uint8(a[:][:])
+
+    return im
+
+# main()
 
 
-for i in range(qs_number):
-    path = ['..', '..','datasets', 'qsd1_w3', '{:05d}'.format(i)+'.jpg']
-    img= cv.imread(os.path.join(*path), cv.IMREAD_COLOR)
-    img = cv.resize(img, (500, 500*img.shape[0]//img.shape[1]))
-    get_boxes(img)
+path = ['..','datasets', 'qsd1_w2', '*.jpg']
+input_files = glob.glob(os.path.join(*path))
+# text_boxes_list = create_list_boxes()
+# overall_score = []
+# score = 0
+# all_boxes = []
+
+for index, image in enumerate(input_files):
+    im = cv.imread(image)
+    im = cv.resize(im, (512,512*im.shape[0]//im.shape[1]))
+    get_boxes(im)
