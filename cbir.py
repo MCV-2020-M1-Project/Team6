@@ -14,10 +14,9 @@ def get_top_k_multi(query, db_descriptor_list, descriptor_method_list, weights, 
     # Filter out by hierarchy
     if hier_desc_dict is not None:
         for desc_name, thresh in hier_desc_dict.items():
+            # Gazapo: Will only work with text 
             db_descriptor_list = \
-                [d for d in db_descriptor_list if dists.get_all_measures(query[desc_name], d[desc_name])[measure_name] > thresh ] \
-                if similarity else \
-                [d for d in db_descriptor_list if dists.get_all_measures(query[desc_name], d[desc_name])[measure_name] < thresh ]
+                [d for d in db_descriptor_list if dists.get_all_measures(query[desc_name], d[desc_name], text=True)['gestalt'] < thresh]
 
     # get top k
     return get_db_top_k(query, db_descriptor_list, descriptor_method_list, weights, measure_name, similarity, k)
