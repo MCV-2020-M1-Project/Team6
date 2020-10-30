@@ -9,6 +9,45 @@ def get_lbp(img, radius = 3., n_points = None, METHOD = 'uniform'):
     return np.uint8(255*(lbim - lbim.min())/(lbim.max() - lbim.min()))
     return np.uint8(lbim)
 
+def get_DCT_coefs(img,N,M):
+    """
+    get N cooefs from DCT
+    """
+    def get_zig_zag(X):
+        matrix = img
+        shape = matrix.shape
+        print(shape)
+        rows = shape[0]
+        columns = shape[1]
+        coefs_zigzag = np.zeros_like(img)
+
+        solution = [[] for i in range(rows + columns - 1)]
+
+        for i in range(rows):
+            for j in range(columns):
+                sum = i + j
+                if (sum % 2 == 0):
+
+                    # add at beginning
+                    solution[sum].insert(0, matrix[i][j])
+                else:
+
+                    # add at end of the list
+                    solution[sum].append(matrix[i][j])
+
+                # print the solution as it as
+        for i in solution:
+            for j in i:
+                print(j, end=" ")
+
+    img_dct = cv2.dct(img.astype(np.float32))
+    coefs_n = np.zeros_like(img_dct)
+    coefs_n[:int(M),:int(N)] = img_dct[:int(M),:int(N)]
+
+    # coefs_n = img_dct[:int(M),:int(N)]
+
+    return img_dct, coefs_n
+
 
 def linear_stretch(im, hist_concat):
     if len(hist_concat) == 768:
