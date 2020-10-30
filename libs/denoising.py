@@ -12,7 +12,7 @@ def denoise_img(img):
     if no need to denoise: img as is
     else: a dicr with keys 'ocr', 'color'
     '''
-    gauss = cv2.GaussianBlur(img,(3, 3),0)
+    gauss = cv2.GaussianBlur(img,(3, 3), 0)
     median = cv2.medianBlur(img, 3)
         
     imgs = {'color': img, 'ocr': img}

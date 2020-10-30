@@ -65,14 +65,17 @@ def main(queryset_name, descriptor, measure, k, similarity, background, bbox):
         else:
             paintings = [img]
 
-        # # Denoise image
-        # denoised_imgs = [dn.denoise_img(painting) for painting in paintings]
-        # paintings = [p['color'] for p in denoised_imgs]
-        # ocr_images = [p['ocr'] for p in denoised_imgs]
+        # Denoise image
+        denoised_imgs = [dn.denoise_img(painting) for painting in paintings]
+        paintings = [p['color'] for p in denoised_imgs]
+        ocr_images = [p['ocr'] for p in denoised_imgs]
 
         if bbox:
-            box_masks = [(1 - boxret.filled_boxes(painting.copy())[1]) \
+            box_masks = [(1 - boxret.get_boxes(painting.copy())) \
                 for painting in paintings]
+
+            # OCR
+            # author = ocr(im, box_masks[i])
 
             # get a dict with the descriptors for the n pictures per painting
             qs_descript_list.append([desc.get_descriptors(paintings[i].copy(), box_masks[i]) \
@@ -103,7 +106,7 @@ def main(queryset_name, descriptor, measure, k, similarity, background, bbox):
     predicted = []
     for query_descript_dic in qs_descript_list:
         predicted.append([cbir.get_top_k_multi(p, \
-                        db_descript_list, [descriptor], [1], measure, similarity, k) \
+                        db_descript_list, [descriptor], [0.9], measure, similarity, k) \
                         for p in query_descript_dic])
 
     # For generating submission pkl

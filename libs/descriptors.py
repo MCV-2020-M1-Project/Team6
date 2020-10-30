@@ -1,6 +1,17 @@
 import cv2
 import numpy as np
 from skimage.feature import local_binary_pattern
+import pytesseract
+
+
+def ocr_preprocissing(im):
+    return 
+
+
+def get_ocr(im, box):
+    
+    return
+
 
 def get_dct(img, N=100):
     imf = np.float32(img)/255.0
@@ -15,7 +26,6 @@ def get_lbp(img, radius = 3., n_points = None, METHOD = 'uniform'):
     n_points = 8*radius if n_points is None else n_points
     lbim = local_binary_pattern(img, n_points, radius, METHOD)
     return np.uint8(255*(lbim - lbim.min())/(lbim.max() - lbim.min()))
-    return np.uint8(lbim)
 
 def get_DCT_coefs(img,N,M):
     """
@@ -352,9 +362,9 @@ def get_descriptors(img, mask=None):
     # descript_dic['bgr_multiresolution'] = get_multiresolution_hist(img, mask)
     descript_dic['hsv_multiresolution'] = get_multiresolution_hist(cv2.cvtColor(img, cv2.COLOR_BGR2HSV), mask)
 
-    # lbp_im = get_lbp(cv2.cvtColor(img, cv2.COLOR_BGR2GRAY))
+    lbp_im = get_lbp(cv2.cvtColor(img, cv2.COLOR_BGR2GRAY))
     # # descript_dic['lbp_multiresolution'] = get_gray_multiresolution_hist(lbp_im, mask)
-    # descript_dic['lbp_hist'] = get_gray_hist(lbp_im, mask)
+    descript_dic['lbp_hist'] = get_gray_hist(lbp_im, mask)
     descript_dic['dct-200'] = get_dct(cv2.cvtColor(img, cv2.COLOR_BGR2GRAY), 100)
     descript_dic['dct-150'] = get_dct(cv2.cvtColor(img, cv2.COLOR_BGR2GRAY), 150)
     return descript_dic
