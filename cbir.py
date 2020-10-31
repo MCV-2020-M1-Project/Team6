@@ -11,23 +11,35 @@ from libs import distance_metrics as dists
 
 
 def get_top_k_multi(query, db_descriptor_list, descriptor_method_list, weights, measure_name, similarity, k, hier_desc_dict=None):
+    shorter_list = []
     # Filter out by hierarchy
     if hier_desc_dict is not None:
         for desc_name, thresh in hier_desc_dict.items():
-            # Gazapo: Will only work with text 
-            db_descriptor_list = \
-                [d for d in db_descriptor_list if dists.get_all_measures(query[desc_name], d[desc_name], text=True)['gestalt'] < thresh]
+            # Gazapo: Will only work with text
+            # print('HEY', query[desc_name])
+            for d in db_descriptor_list:
+                if dists.gestalt(query[desc_name], d[desc_name]) <= thresh:
+                    shorter_list.append(d)
 
+    if len(shorter_list) == 0:
+        shorter_list = db_descriptor_list
+    # print('QUERY:', query['author'])
+    # print('len db after', len(shorter_list))
+    # print('DB')
+    # for d in shorter_list:
+    #     print(d.keys())
+    
     # get top k
-    return get_db_top_k(query, db_descriptor_list, descriptor_method_list, weights, measure_name, similarity, k)
+    return get_db_top_k(query, shorter_list, descriptor_method_list, weights, measure_name, similarity, k)
 
 
 def get_db_top_k(query_descriptor, db_descriptor_list, descriptor_method_list, weight_list, measure, similarity, k=3):
 
     distances_dict = {}
-    img_idx = 0
     for db_point in db_descriptor_list:
-
+        
+        # print('db:', db_point['author'])
+        img_idx = db_point['idx']
         distances_dict[img_idx] = 0
 
         for d, w in zip(descriptor_method_list, weight_list):

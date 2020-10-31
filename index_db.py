@@ -24,11 +24,12 @@ for i in range(287):
     temp_dict = desc.get_descriptors(img)
 
     if len(text_db[i]) != 2:
-        temp_dict['author'] = temp_dict['title'] = None
+        temp_dict['author'] = temp_dict['title'] = ''
     else:
         temp_dict['author'] = text_db[i][0]
         temp_dict['title'] = text_db[i][1]
-
+    
+    temp_dict['idx'] = i
     descript_dic_list.append(temp_dict) #get a dic with the descriptors for the img
 
 # Save descriptors

@@ -19,7 +19,16 @@ def gestalt(a, b):
     '''
     Returns difference ration between two strings
     '''
-    return 1 - SequenceMatcher(None, a, b).ratio()
+    if a is None:
+        a = ''
+    if b is None:
+        b = ''
+
+    result = 1 - SequenceMatcher(None, a, b).ratio()
+    # if result < 0.5:
+    #     print(a, 'vs', b)
+    #     print(result)
+    return result
 
 
 def longest_common_subsequence(X, Y, m, n):
@@ -225,10 +234,11 @@ def get_all_measures(a, b, display=False, text=False):
     '''
     if text:
         measures =  {
-                    'gestalt': gestalt(a, b),
-                    'levenshtein':levenshtein(a,b),
-                    'hamming': hamming(a, b)
+                    'gestalt': gestalt(a, b)
+                    # 'levenshtein':levenshtein(a,b),
+                    # 'hamming': hamming(a, b)
                     }
+        # print(measures['gestalt'])
     else:
         measures =  {
                     # 'eucl': get_euclidean_distance(a, b),

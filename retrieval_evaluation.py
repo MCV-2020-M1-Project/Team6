@@ -9,12 +9,14 @@ import argparse
 # Lib imports
 import ml_metrics as metrics
 import cv2
+import numpy as np
 # Our code imports
 import cbir
 from libs import descriptors as desc
 from libs import background_removal as bg
 from libs import box_retrieval as boxret
 from libs import denoising as dn
+from libs import text_retrieval as txt
 
 
 def sort_rects_lrtb(rect_list):
@@ -66,20 +68,41 @@ def main(queryset_name, descriptor, measure, k, similarity, background, bbox):
             paintings = [img]
 
         # Denoise image
-        denoised_imgs = [dn.denoise_img(painting) for painting in paintings]
-        paintings = [p['color'] for p in denoised_imgs]
-        ocr_images = [p['ocr'] for p in denoised_imgs]
+        # denoised_imgs = [dn.denoise_img(painting) for painting in paintings]
+        # paintings = [p['color'] for p in denoised_imgs]
+        # ocr_images = [p['ocr'] for p in denoised_imgs]
 
         if bbox:
             box_masks = [(1 - boxret.get_boxes(painting.copy())) \
                 for painting in paintings]
 
+            text_list = []
             # OCR
+            for bb, p in zip(box_masks, paintings):
+                mask = 1 - bb
+
+                a = np.where(mask > 0)
+
+                pts = [(i, j) for i,j in zip(*a)]
+
+                masked_img = p[pts[0][0]:pts[-1][0], pts[0][1]:pts[-1][1]]
+
+                # masked_img = cv2.bitwise_and(p, p, mask=mask)
+                # masked_img = p[bb > 0]
+                text_list.append(txt.get_text(masked_img))
             # author = ocr(im, box_masks[i])
 
             # get a dict with the descriptors for the n pictures per painting
-            qs_descript_list.append([desc.get_descriptors(paintings[i].copy(), box_masks[i]) \
-             for i in range(len(paintings))])
+            temp_list = []
+            for i in range(len(paintings)):
+                d = desc.get_descriptors(paintings[i].copy(), box_masks[i])
+                d['author'] = text_list[i]
+                temp_list.append(d)
+                # print(d['author'])
+            qs_descript_list.append(temp_list)
+
+            # qs_descript_list.append([desc.get_descriptors(paintings[i].copy(), box_masks[i]) \
+            #  for i in range(len(paintings))])
 
             # Save text boxes in a pkl for evaluation
             temp_list = []
@@ -97,8 +120,13 @@ def main(queryset_name, descriptor, measure, k, similarity, background, bbox):
             bbox_list.append(sort_rects_lrtb(temp_list))
         else:
             # get a dic with the descriptors for the n pictures per painting
-            qs_descript_list.append([desc.get_descriptors(painting.copy(), None) \
-             for painting in paintings])
+            # TODO: go back to compressed list, jsut add author in get all descriptors
+            temp_list = []
+            for p in paintings:
+                d = desc.get_descriptors(p.copy(), None)
+                d['author'] = ''
+                temp_list.append(d)
+            qs_descript_list.append(temp_list)
 
     with open('text_boxes.pkl', 'wb') as f:
         pkl.dump(bbox_list, f)
@@ -106,7 +134,7 @@ def main(queryset_name, descriptor, measure, k, similarity, background, bbox):
     predicted = []
     for query_descript_dic in qs_descript_list:
         predicted.append([cbir.get_top_k_multi(p, \
-                        db_descript_list, [descriptor], [0.9], measure, similarity, k) \
+                        db_descript_list, [descriptor], [1], measure, similarity, k, {'author': 0.3}) \
                         for p in query_descript_dic])
 
     # For generating submission pkl
