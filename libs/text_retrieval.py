@@ -1,7 +1,7 @@
 import pytesseract
 import cv2
 import numpy as np
-# pytesseract.pytesseract.tesseract_cmd = r"C:\Program Files\Tesseract-OCR\tesseract.exe"
+pytesseract.pytesseract.tesseract_cmd = r"C:\Program Files\Tesseract-OCR\tesseract.exe"
 
 
 # image = cv2.imread(r'../../datasets/qsd1_w3/00003.jpg')

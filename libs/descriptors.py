@@ -375,6 +375,7 @@ def get_descriptors(img, mask=None):
     # descript_dic['DCT-16'] = get_DCT_coefs(img, N=16)
     # descript_dic['DCT-32'] = get_DCT_coefs(img, N=32)
     descript_dic['DCT-16-8'] = get_DCT_coefs(img, N=16)
+    descript_dic['DCT-24-32'] = get_DCT_coefs(img, N=24, block_w=32)
     descript_dic['DCT-16-32'] = get_DCT_coefs(img, N=16, block_w=32)
     descript_dic['DCT-16-64'] = get_DCT_coefs(img, N=16, block_w=64)
     # descript_dic['hs_concat_hist_st'] = get_hs_concat_hist_st(img, mask)
