@@ -70,8 +70,8 @@ def get_DCT_coefs(img, N):
     h_blocks = shape[1]//8
     w_blocks = shape[0]//8
 
-    for number_w in range(0,w_blocks):
-        for number_h in range(0,h_blocks):
+    for number_w in range(0,w_blocks+1):
+        for number_h in range(0,h_blocks+1):
             if (number_w+1)*8 > shape[0]:
                 x_end = shape[0]
             else:
