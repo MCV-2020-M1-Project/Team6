@@ -19,6 +19,7 @@ for i in range(287):
 
 
 for i in range(287):
+    if i % 20==0: print(i)
     img_path = ['..', 'datasets', 'BBDD', 'bbdd_' + '{:05d}'.format(i) +'.jpg']
     img = cv2.imread(os.path.join(*img_path), cv2.IMREAD_COLOR)
     temp_dict = desc.get_descriptors(img)

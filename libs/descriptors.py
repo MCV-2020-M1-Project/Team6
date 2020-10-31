@@ -38,7 +38,7 @@ def get_DCT_coefs(image, N):
     def get_zig_zag(img_block, N):
         matrix = img_block
         shape = matrix.shape
-        print(shape)
+        #print(shape)
         rows = shape[0]
         columns = shape[1]
         coefs_zigzag = []
@@ -65,14 +65,15 @@ def get_DCT_coefs(image, N):
         return coefs_zigzag[:N]
 
     img = cv2.cvtColor(image.copy(), cv2.COLOR_BGR2GRAY)
+    img = cv2.resize(img,(512,512))
     shape = img.shape
     all_coefs = []
 
     h_blocks = shape[1]//8
     w_blocks = shape[0]//8
 
-    for number_w in range(0,w_blocks+1):
-        for number_h in range(0,h_blocks+1):
+    for number_w in range(0,w_blocks):
+        for number_h in range(0,h_blocks):
             if (number_w+1)*8 > shape[0]:
                 x_end = shape[0]
             else:
@@ -88,7 +89,7 @@ def get_DCT_coefs(image, N):
             feature_vector = get_zig_zag(coefs, N)
             all_coefs.extend(feature_vector)
 
-    return all_coefs
+    return np.array(all_coefs)
 
 
 def linear_stretch(im, hist_concat):
@@ -364,7 +365,6 @@ def get_hs_concat_hist_st(img, mask=None):
 def get_descriptors(img, mask=None):
     ''' Paramenters: img (color image)
         Returns: descript_dic (dictionary with descriptors names as keys) '''
-
     descript_dic = {}
     # descript_dic['gray_hist'] = get_gray_hist(img, mask)
     # descript_dic['bgr_concat_hist'] = get_bgr_concat_hist(img, mask)
@@ -372,6 +372,9 @@ def get_descriptors(img, mask=None):
     # descript_dic['ycrcb_concat_hist'] = get_ycrcb_concat_hist(img, mask)
     descript_dic['hsv_concat_hist'] = get_hsv_concat_hist(img, mask)
     descript_dic['hs_concat_hist'] = get_hs_concat_hist(img, mask)
+    # descript_dic['DCT-16'] = get_DCT_coefs(img, N=16)
+    # descript_dic['DCT-32'] = get_DCT_coefs(img, N=32)
+    descript_dic['DCT-16'] = get_DCT_coefs(img, N=16)
     # descript_dic['hs_concat_hist_st'] = get_hs_concat_hist_st(img, mask)
     # descript_dic['hs_concat_hist_blur'] = get_hs_concat_hist_blur(img, mask)
     # descript_dic['hsv_concat_hist_blur'] = get_hsv_concat_hist_blur(img, mask)
@@ -386,11 +389,11 @@ def get_descriptors(img, mask=None):
     # descript_dic['bgr_multiresolution'] = get_multiresolution_hist(img, mask)
     descript_dic['hsv_multiresolution'] = get_multiresolution_hist(cv2.cvtColor(img, cv2.COLOR_BGR2HSV), mask)
 
-    lbp_im = get_lbp(cv2.cvtColor(img, cv2.COLOR_BGR2GRAY))
+    # lbp_im = get_lbp(cv2.cvtColor(img, cv2.COLOR_BGR2GRAY))
     # # descript_dic['lbp_multiresolution'] = get_gray_multiresolution_hist(lbp_im, mask)
-    descript_dic['lbp_hist'] = get_gray_hist(lbp_im, mask)
-    descript_dic['dct-200'] = get_dct(cv2.cvtColor(img, cv2.COLOR_BGR2GRAY), 100)
-    descript_dic['dct-150'] = get_dct(cv2.cvtColor(img, cv2.COLOR_BGR2GRAY), 150)
+    # descript_dic['lbp_hist'] = get_gray_hist(lbp_im, mask)
+    # descript_dic['dct-200'] = get_dct(cv2.cvtColor(img, cv2.COLOR_BGR2GRAY), 100)
+    # descript_dic['dct-150'] = get_dct(cv2.cvtColor(img, cv2.COLOR_BGR2GRAY), 150)
     return descript_dic
 
 # import distance_metrics as dist 
