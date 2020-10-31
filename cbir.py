@@ -40,14 +40,13 @@ def get_db_top_k(query_descriptor, db_descriptor_list, descriptor_method_list, w
         
         # print('db:', db_point['author'])
         img_idx = db_point['idx']
+        # print(img_idx)
         distances_dict[img_idx] = 0
 
         for d, w in zip(descriptor_method_list, weight_list):
             distances = dists.get_all_measures(query_descriptor[d], db_point[d])
             distances_dict[img_idx] += w * abs(distances[measure])
-
-        img_idx += 1
-
+           
     return sorted(distances_dict, key=distances_dict.get, reverse=similarity)[:k]
 
 

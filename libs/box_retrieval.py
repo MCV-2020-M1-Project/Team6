@@ -71,7 +71,7 @@ def get_boxes(im):
     im = cv.resize(im, (500, 500*im.shape[0]//im.shape[1]))
     him, wim = im.shape[:2]
 
-    # cv.imshow('testingb:',im)
+    # cv.imshow('painting:',im)
     # cv.waitKey(0)
     
     im = linear_stretch( im, descriptors.get_bgr_concat_hist(im))
@@ -79,18 +79,18 @@ def get_boxes(im):
     #gradients
     kernel = np.ones((7,7),np.float32)/49
     im = cv.filter2D(im,-1,kernel)
-    #cv.imshow('blur:', im)
+    # cv.imshow('blur:', im)
 
     laplacian = cv.Laplacian(im,cv.CV_64F)
     extrem = (abs(np.min(laplacian))+abs(np.max(laplacian)))//2
     tol = extrem*0.35
 
     lap = 255 * np.uint8(abs(laplacian[:, :, 0])>tol) # * np.uint8(abs(laplacian[:, :, 1])>tol) * np.uint8(abs(laplacian[:, :,2])>tol)
-    #cv.imshow('lap:',lap)
+    # cv.imshow('lap:',lap)
     mask = np.zeros_like(lap)
     
-    #cv.imshow('corte:',corte)
     mask[int(him*0.05):-int(him*0.05),int(wim*0.2):-int(wim*0.2)] = lap[int(him*0.05):-int(him*0.05),int(wim*0.2):-int(wim*0.2)]
+    # cv.imshow('corte:',mask)
 
     kernel = cv.getStructuringElement(cv.MORPH_RECT, (wim//5,4))
     mask = cv.morphologyEx(mask, cv.MORPH_CLOSE, kernel)
@@ -98,7 +98,8 @@ def get_boxes(im):
     mask = cv.morphologyEx(mask, cv.MORPH_CLOSE, kernel)
     kernel = cv.getStructuringElement(cv.MORPH_RECT, (wim//10,1))
     mask = cv.morphologyEx(mask, cv.MORPH_OPEN, kernel)
-    #cv.imshow('morf:',mask)
+    # cv.imshow('morf:',mask)
+
     
     contours = cv.findContours(mask, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_NONE)[0]
     mask = cv.cvtColor(mask, cv.COLOR_GRAY2BGR)
@@ -107,12 +108,15 @@ def get_boxes(im):
     for blob in contours:
         x, y, w, h = cv.boundingRect(blob)
         fill = check_box_fill(mask[:,:,0], x, y, w, h)[2]
-        if h>5 and w*h<wim*him*0.35 and h/w<0.8 and fill > 0.5:
+        if h>5 and w*h<wim*him*0.35 and h/w<0.9 and fill > 0.35:
             cx = x+w//2
             cy = y+h//2
             if wim*0.2>abs(wim//2-cx) and him*0.17<abs(him//2-cy):
                 rectangles.append((x,y,w,h))
                 cv.rectangle(draw, (x,y), (x+w,y+h), (0,0,255))
+
+    # cv.imshow('rects',draw)
+    # cv.waitKey(0)
 
     rectangles = sorted(rectangles, key=lambda x: x[1])
     aux = []
@@ -137,10 +141,12 @@ def get_boxes(im):
     for rect in aux:
         cv.rectangle(draw, (rect[0],rect[1]), (rect[0]+rect[2],rect[3]+rect[1]), (0,255,0))
 
-    # cv.imshow('rect:',draw)
 
 
-    the_rect = aux[0]
+    if len(aux) < 1:
+        return None
+
+    the_rect = aux[0] 
     if len(aux)>1:
         the_rect = choose_best_rectangle(aux, laplacian)
     
@@ -151,9 +157,9 @@ def get_boxes(im):
     kernel = cv.getStructuringElement(cv.MORPH_RECT, (wim//25,10))
     box_mask = cv.morphologyEx(box_mask, cv.MORPH_DILATE, kernel, iterations=2)
 
+    # cv.imshow('result:',im[:,:,1]*box_mask)
     box_mask = cv.resize(box_mask, original_size[::-1])
 
-    # cv.imshow('result:',img[:,:,1]*box_mask)
     # cv.waitKey(0)
     return box_mask
 
