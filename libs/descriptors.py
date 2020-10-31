@@ -27,17 +27,21 @@ def get_lbp(img, radius = 3., n_points = None, METHOD = 'uniform'):
     lbim = local_binary_pattern(img, n_points, radius, METHOD)
     return np.uint8(255*(lbim - lbim.min())/(lbim.max() - lbim.min()))
 
-def get_DCT_coefs(img,N,M):
+def get_DCT_coefs(image, N):
     """
-    get N cooefs from DCT
+    Function that get first N coeficients from DCT of 8x8 block
+    from the image
+    param:
+    img = image from which you want to calculate DCT
+    N = number of first coefficients you wish to extract
     """
-    def get_zig_zag(X):
-        matrix = img
+    def get_zig_zag(img_block, N):
+        matrix = img_block
         shape = matrix.shape
         print(shape)
         rows = shape[0]
         columns = shape[1]
-        coefs_zigzag = np.zeros_like(img)
+        coefs_zigzag = []
 
         solution = [[] for i in range(rows + columns - 1)]
 
@@ -56,15 +60,35 @@ def get_DCT_coefs(img,N,M):
                 # print the solution as it as
         for i in solution:
             for j in i:
-                print(j, end=" ")
+                # print(j, end=" ")
+                coefs_zigzag.append(j)
+        return coefs_zigzag[:N]
 
-    img_dct = cv2.dct(img.astype(np.float32))
-    coefs_n = np.zeros_like(img_dct)
-    coefs_n[:int(M),:int(N)] = img_dct[:int(M),:int(N)]
+    img = cv2.cvtColor(image.copy(), cv2.COLOR_BGR2GRAY)
+    shape = img.shape
+    all_coefs = []
 
-    # coefs_n = img_dct[:int(M),:int(N)]
+    h_blocks = shape[1]//8
+    w_blocks = shape[0]//8
 
-    return img_dct, coefs_n
+    for number_w in range(0,w_blocks+1):
+        for number_h in range(0,h_blocks+1):
+            if (number_w+1)*8 > shape[0]:
+                x_end = shape[0]
+            else:
+                x_end = (number_w+1)*8
+            if (number_h+1)*8 > shape[1]:
+                y_end = shape[1]
+            else:
+                y_end = (number_h+1)*8
+            x_front = number_w*8
+            y_front = number_h*8
+            img_block = img[x_front:x_end,y_front:y_end].copy()
+            coefs = cv2.dct(img_block.astype(np.float32))
+            feature_vector = get_zig_zag(coefs, N)
+            all_coefs.extend(feature_vector)
+
+    return all_coefs
 
 
 def linear_stretch(im, hist_concat):
