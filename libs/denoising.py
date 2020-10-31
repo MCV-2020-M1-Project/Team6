@@ -3,6 +3,8 @@ Library for all related to denoising
 '''
 import numpy as np
 import cv2
+
+from libs import background_removal as br
 # from skimage.metrics import structural_similarity as ssim
 
 
@@ -98,6 +100,19 @@ def find_best_denoise(img, display=False):
 
         cv2.waitKey(0)
 
+
+def image_has_noise(image):
+    # segment background
+    painting_mask, _ = br.method_canny_multiple_paintings(image)
+    image[:, :, 0] *= (1 - painting_mask)
+    image[:, :, 1] *= (1 - painting_mask)
+    image[:, :, 2] *= (1 - painting_mask)
+
+    # decide using psnr
+    blurred_background = cv2.medianBlur(image, 3)
+    if get_psnr(image, blurred_background) > 30:
+        return False
+    return True
 
 # for i in range(30):
 #     print(i)

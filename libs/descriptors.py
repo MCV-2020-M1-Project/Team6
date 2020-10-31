@@ -1,16 +1,14 @@
 import cv2
 import numpy as np
-from skimage.feature import local_binary_pattern
+from skimage.feature import local_binary_pattern, hog
 import pytesseract
 
 
-def ocr_preprocissing(im):
-    return 
-
-
-def get_ocr(im, box):
-    
-    return
+def get_hog(im):
+    resized_im = cv2.resize(im, (512,512))
+    H = hog(resized_im, orientations=9, pixels_per_cell=(15, 15), cells_per_block=(2, 2), #TODO try smaller pixels per cell
+            transform_sqrt=True, block_norm="L1")
+    return H
 
 
 def get_dct(img, N=100):
@@ -374,7 +372,7 @@ def get_descriptors(img, mask=None):
     descript_dic['hs_concat_hist'] = get_hs_concat_hist(img, mask)
     # descript_dic['DCT-16'] = get_DCT_coefs(img, N=16)
     # descript_dic['DCT-32'] = get_DCT_coefs(img, N=32)
-    descript_dic['DCT-16-8'] = get_DCT_coefs(img, N=16)
+    # descript_dic['DCT-16-8'] = get_DCT_coefs(img, N=16)
     descript_dic['DCT-16-32'] = get_DCT_coefs(img, N=16, block_w=32)
     descript_dic['DCT-16-64'] = get_DCT_coefs(img, N=16, block_w=64)
     # descript_dic['hs_concat_hist_st'] = get_hs_concat_hist_st(img, mask)
@@ -390,7 +388,7 @@ def get_descriptors(img, mask=None):
     # descript_dic['hs_multiresolution'] = get_hs_multiresolution_hist(img, mask)
     # descript_dic['bgr_multiresolution'] = get_multiresolution_hist(img, mask)
     descript_dic['hsv_multiresolution'] = get_multiresolution_hist(cv2.cvtColor(img, cv2.COLOR_BGR2HSV), mask)
-
+    descript_dic['hog'] = get_hog(img)
     # lbp_im = get_lbp(cv2.cvtColor(img, cv2.COLOR_BGR2GRAY))
     # # descript_dic['lbp_multiresolution'] = get_gray_multiresolution_hist(lbp_im, mask)
     # descript_dic['lbp_hist'] = get_gray_hist(lbp_im, mask)
