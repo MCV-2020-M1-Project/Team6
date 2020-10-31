@@ -27,7 +27,7 @@ def get_lbp(img, radius = 3., n_points = None, METHOD = 'uniform'):
     lbim = local_binary_pattern(img, n_points, radius, METHOD)
     return np.uint8(255*(lbim - lbim.min())/(lbim.max() - lbim.min()))
 
-def get_DCT_coefs(image, N):
+def get_DCT_coefs(image, N, block_w=8):
     """
     Function that get first N coeficients from DCT of 8x8 block
     from the image
@@ -69,21 +69,21 @@ def get_DCT_coefs(image, N):
     shape = img.shape
     all_coefs = []
 
-    h_blocks = shape[1]//8
-    w_blocks = shape[0]//8
+    h_blocks = shape[1]//block_w
+    w_blocks = shape[0]//block_w
 
     for number_w in range(0,w_blocks):
         for number_h in range(0,h_blocks):
-            if (number_w+1)*8 > shape[0]:
+            if (number_w+1)*block_w > shape[0]:
                 x_end = shape[0]
             else:
-                x_end = (number_w+1)*8
-            if (number_h+1)*8 > shape[1]:
+                x_end = (number_w+1)*block_w
+            if (number_h+1)*block_w > shape[1]:
                 y_end = shape[1]
             else:
-                y_end = (number_h+1)*8
-            x_front = number_w*8
-            y_front = number_h*8
+                y_end = (number_h+1)*block_w
+            x_front = number_w*block_w
+            y_front = number_h*block_w
             img_block = img[x_front:x_end,y_front:y_end].copy()
             coefs = cv2.dct(img_block.astype(np.float32))
             feature_vector = get_zig_zag(coefs, N)
@@ -374,7 +374,9 @@ def get_descriptors(img, mask=None):
     descript_dic['hs_concat_hist'] = get_hs_concat_hist(img, mask)
     # descript_dic['DCT-16'] = get_DCT_coefs(img, N=16)
     # descript_dic['DCT-32'] = get_DCT_coefs(img, N=32)
-    descript_dic['DCT-16'] = get_DCT_coefs(img, N=16)
+    descript_dic['DCT-16-8'] = get_DCT_coefs(img, N=16)
+    descript_dic['DCT-16-32'] = get_DCT_coefs(img, N=16, block_w=32)
+    descript_dic['DCT-16-64'] = get_DCT_coefs(img, N=16, block_w=64)
     # descript_dic['hs_concat_hist_st'] = get_hs_concat_hist_st(img, mask)
     # descript_dic['hs_concat_hist_blur'] = get_hs_concat_hist_blur(img, mask)
     # descript_dic['hsv_concat_hist_blur'] = get_hsv_concat_hist_blur(img, mask)
@@ -394,6 +396,8 @@ def get_descriptors(img, mask=None):
     # descript_dic['lbp_hist'] = get_gray_hist(lbp_im, mask)
     # descript_dic['dct-200'] = get_dct(cv2.cvtColor(img, cv2.COLOR_BGR2GRAY), 100)
     # descript_dic['dct-150'] = get_dct(cv2.cvtColor(img, cv2.COLOR_BGR2GRAY), 150)
+    descript_dic['author'] = descript_dic['title'] = ''
+    
     return descript_dic
 
 # import distance_metrics as dist 
