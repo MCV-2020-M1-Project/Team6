@@ -19,12 +19,11 @@ def gestalt(a, b):
     '''
     Returns difference ration between two strings
     '''
-    if a is None:
-        a = ''
-    if b is None:
-        b = ''
+    if a is None or a == '' or b is None or b == '' :
+        return 1
 
     result = 1 - SequenceMatcher(None, a, b).ratio()
+
     # if result < 0.5:
     #     print(a, 'vs', b)
     #     print(result)

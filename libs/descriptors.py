@@ -340,7 +340,9 @@ def get_hs_concat_hist_st(img, mask=None):
 def get_descriptors(img, mask=None):
     ''' Paramenters: img (color image)
         Returns: descript_dic (dictionary with descriptors names as keys) '''
-
+    # cv2.imshow('img', img)
+    # cv2.imshow('mask', 255*mask)
+    # cv2.waitKey(0)
     descript_dic = {}
     # descript_dic['gray_hist'] = get_gray_hist(img, mask)
     # descript_dic['bgr_concat_hist'] = get_bgr_concat_hist(img, mask)
@@ -367,6 +369,9 @@ def get_descriptors(img, mask=None):
     descript_dic['lbp_hist'] = get_gray_hist(lbp_im, mask)
     descript_dic['dct-200'] = get_dct(cv2.cvtColor(img, cv2.COLOR_BGR2GRAY), 100)
     descript_dic['dct-150'] = get_dct(cv2.cvtColor(img, cv2.COLOR_BGR2GRAY), 150)
+
+    descript_dic['author'] = ''
+    descript_dic['title'] = ''
     return descript_dic
 
 # import distance_metrics as dist 

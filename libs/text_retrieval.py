@@ -19,12 +19,24 @@ def get_text(im):
     # gray = cv2.adaptiveThreshold(gray, 255,cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY, 3, 1)
     gray = cv2.threshold(gray, 0, 255, cv2.THRESH_BINARY | cv2.THRESH_OTSU)[1]
 
-    text = pytesseract.image_to_string(gray)
+    custom_config = '-c tessedit_char_whitelist=ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyzñÑçÇ -c tessedit_char_blacklist=@ --oem 3'
+    # abcdefgijklmnopqrstuvwxyzñç
+    text = pytesseract.image_to_string(gray)#, config=custom_config)
 
+    whitelist = set([c for c in 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyzñÑçÇ'])
+    new_text = ''
+    for c in text.strip():
+        if c in whitelist or c == ' ':
+            new_text += c
+    
+    
     # print(text)
+    # print(len(text.strip()))
+    # print(new_text)
+    # print(len(new_text))
     # cv2.imshow('gray',cv2.resize(gray, (500, 500*gray.shape[0]//gray.shape[1])))
     # cv2.waitKey()
-    return text.strip() if text is not None else ''
+    return new_text
 
 # from libs import box_retrieval
 # from libs import distance_metrics
