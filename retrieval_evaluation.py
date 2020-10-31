@@ -69,6 +69,8 @@ def main(queryset_name, descriptor, measure, k, similarity, background, bbox):
                 paintings.append(img[v1[1]:v2[1], v1[0]:v2[0]])
         else:
             paintings = [img]
+        
+        # print(i, len(paintings))
 
         # for i, p in enumerate(paintings):
         #     cv2.imshow('crop' + str(i), p)
@@ -158,7 +160,7 @@ def main(queryset_name, descriptor, measure, k, similarity, background, bbox):
     predicted = []
     for query_descript_dic in qs_descript_list:
         predicted.append([cbir.get_top_k_multi(p, \
-                        db_descript_list, [descriptor], [1], measure, similarity, k, {'title': .3}) \
+                        db_descript_list, [descriptor], [1], measure, similarity, k, {'author': 0.3}) \
                         for p in query_descript_dic])
 
     # For generating submission pkl
@@ -174,7 +176,12 @@ def main(queryset_name, descriptor, measure, k, similarity, background, bbox):
 
     # Extending lists to get performance for list of lists of lists
     new_predicted = []
-    for images in predicted:
+    for images, actual_im in zip(predicted, actual):
+        if len(images) > len(actual_im):
+            images = images[:len(actual_im)]
+        elif len(images) < len(actual_im):
+            for i in range(len(actual_im) - len(images)):
+                images.append([-1])
         for paintings in images:
             new_predicted.append(paintings)
 
@@ -188,10 +195,10 @@ def main(queryset_name, descriptor, measure, k, similarity, background, bbox):
 
     map_k = metrics.kdd_mapk(new_actual,new_predicted,k)
 
-    # print('actual:', actual)
-    print('new actual:', new_actual)
-    # print('predicted:', predicted)
-    print('new predicted:', new_predicted)
+    print('actual:', actual)
+    # print('new actual:', new_actual)
+    print('predicted:', predicted)
+    # print('new predicted:', new_predicted)
     print('Result =', map_k)
 
     with open('results.csv', 'w', newline='') as file:

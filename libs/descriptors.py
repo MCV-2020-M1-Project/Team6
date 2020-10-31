@@ -341,7 +341,7 @@ def get_descriptors(img, mask=None):
     ''' Paramenters: img (color image)
         Returns: descript_dic (dictionary with descriptors names as keys) '''
     # cv2.imshow('img', img)
-    # cv2.imshow('mask', 255*mask)
+    # # cv2.imshow('mask', 255*mask)
     # cv2.waitKey(0)
     descript_dic = {}
     # descript_dic['gray_hist'] = get_gray_hist(img, mask)
@@ -372,6 +372,7 @@ def get_descriptors(img, mask=None):
 
     descript_dic['author'] = ''
     descript_dic['title'] = ''
+    
     return descript_dic
 
 # import distance_metrics as dist 
