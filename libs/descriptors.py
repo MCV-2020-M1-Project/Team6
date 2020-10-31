@@ -27,7 +27,7 @@ def get_lbp(img, radius = 3., n_points = None, METHOD = 'uniform'):
     lbim = local_binary_pattern(img, n_points, radius, METHOD)
     return np.uint8(255*(lbim - lbim.min())/(lbim.max() - lbim.min()))
 
-def get_DCT_coefs(img, N):
+def get_DCT_coefs(image, N):
     """
     Function that get first N coeficients from DCT of 8x8 block
     from the image
@@ -64,6 +64,7 @@ def get_DCT_coefs(img, N):
                 coefs_zigzag.append(j)
         return coefs_zigzag[:N]
 
+    img = cv2.cvtColor(image.copy(), cv2.COLOR_BGR2GRAY)
     shape = img.shape
     all_coefs = []
 
