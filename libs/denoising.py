@@ -27,11 +27,11 @@ def denoise_img(img):
 
     denoised_img = img
     if gauss_mad > 20: # maybe here call antonis function
-        if gauss_psnr < median_psnr and abs(get_psnr(img, gauss) - get_psnr(img, median)) > 1.5:
+        if gauss_psnr > median_psnr and abs(get_psnr(img, gauss) - get_psnr(img, median)) > 1.5:
             denoised_img = gauss
         else:
             denoised_img = median
-    return img # denoised_img
+    return denoised_img
 
 
 # def get_ssim(original, denoised):
