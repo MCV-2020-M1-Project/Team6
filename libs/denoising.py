@@ -3,6 +3,8 @@ Library for all related to denoising
 '''
 import numpy as np
 import cv2
+
+from libs import background_removal as br
 # from skimage.metrics import structural_similarity as ssim
 
 
@@ -12,18 +14,24 @@ def denoise_img(img):
     if no need to denoise: img as is
     else: a dicr with keys 'ocr', 'color'
     '''
-    gauss = cv2.GaussianBlur(img,(3, 3), 0)
-    median = cv2.medianBlur(img, 3)
-        
-    imgs = {'color': img, 'ocr': img}
-    if get_mad(img, gauss) > 20: # maybe here call antonis function
-        if abs(get_psnr(img, gauss) - get_psnr(img, median)) < 1.5:
-            imgs['ocr'] = gauss
-            imgs['color'] = median
-        else:
-            imgs['ocr'] = imgs['color'] = gauss
+    k_size = np.max(img.shape)//300
+    k_size = k_size if k_size % 2 else k_size + 1
+    k_size = 3 if k_size < 3 else k_size
 
-    return imgs
+    gauss = cv2.GaussianBlur(img,(k_size, k_size), 0)
+    median = cv2.medianBlur(img, k_size)
+
+    gauss_psnr = get_psnr(img, gauss)
+    gauss_mad = get_mad(img, gauss)
+    median_psnr = get_psnr(img, median)
+
+    denoised_img = img
+    if gauss_mad > 20: # maybe here call antonis function
+        if gauss_psnr > median_psnr and abs(get_psnr(img, gauss) - get_psnr(img, median)) > 1.5:
+            denoised_img = gauss
+        else:
+            denoised_img = median
+    return denoised_img
 
 
 # def get_ssim(original, denoised):
@@ -79,25 +87,39 @@ def find_best_denoise(img, display=False):
     print('mad:', mad_noise_eval, abs(mad_noise_eval[0][0] -  mad_noise_eval[1][0]))
 
     if display:
-        win_width = 400
+        while cv2.waitKey(0) != ord('q'):
+            win_width = 400
 
-        cv2.imshow('Original', img)
-        for i in psnr_noise_eval:
-            cv2.namedWindow(i[1])
+            cv2.imshow('Original', img)
+            for i in psnr_noise_eval:
+                cv2.namedWindow(i[1])
 
-        for i in psnr_noise_eval:
-            s = methods[i[1]].shape
-            cv2.imshow(i[1], cv2.resize(methods[i[1]], (win_width, win_width*s[0]//s[1])))
+            for i in psnr_noise_eval:
+                s = methods[i[1]].shape
+                cv2.imshow(i[1], cv2.resize(methods[i[1]], (win_width, win_width*s[0]//s[1])))
+            
+            xd = 10
+            cv2.moveWindow('Original', xd, 10)
+            xd += 20
+            for i in psnr_noise_eval:
+                xd += win_width + 10
+                cv2.moveWindow(i[1], xd, 10)
+
         
-        xd = 10
-        cv2.moveWindow('Original', xd, 10)
-        xd += 20
-        for i in psnr_noise_eval:
-            xd += win_width + 10
-            cv2.moveWindow(i[1], xd, 10)
 
-        cv2.waitKey(0)
 
+def image_has_noise(image):
+    # segment background
+    painting_mask, _ = br.method_canny_multiple_paintings(image)
+    image[:, :, 0] *= (1 - painting_mask)
+    image[:, :, 1] *= (1 - painting_mask)
+    image[:, :, 2] *= (1 - painting_mask)
+
+    # decide using psnr
+    blurred_background = cv2.medianBlur(image, 3)
+    if get_psnr(image, blurred_background) > 30:
+        return False
+    return True
 
 # for i in range(30):
 #     print(i)
@@ -108,4 +130,4 @@ def find_best_denoise(img, display=False):
 
 #     # print('rgb')
 #     find_best_denoise(img, True)
-#     imgs = denoise_img(img)
+# #     imgs = denoise_img(img)

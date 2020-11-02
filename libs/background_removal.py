@@ -206,7 +206,7 @@ def contours_overlap(contour_A, contour_B):
     return True
 
 
-def method_canny_multiple_paintings(image, save=False, generate_measures=False):
+def method_canny_multiple_paintings_old(image, save=False, generate_measures=False):
 
     if generate_measures:
         name = image
@@ -254,6 +254,72 @@ def method_canny_multiple_paintings(image, save=False, generate_measures=False):
             list_of_painting_coordinates.append([Bx, By, Bx+Bw, By+Bh])
             mask[By:By+Bh, Bx:Bx+Bw] = 1
 
+    if save:
+        if not os.path.exists(f'../datasets/masks_extracted/canny/'):
+            os.makedirs(f'../datasets/masks_extracted/canny/')
+        cv.imwrite(f'../datasets/masks_extracted/canny/{name}.png', mask)
+
+    if generate_measures:
+        return get_measures(image, mask)
+    else:
+        # List element: [x, y, x+w, y+h]
+        return np.uint8(mask), list_of_painting_coordinates
+
+
+def method_canny_multiple_paintings(image, save=False, generate_measures=False):
+
+    if generate_measures:
+        name = image
+        img = cv.imread(f'../datasets/qsd2_w1/{name}.jpg')
+    else:
+        img = image
+
+    #############################################################################
+    # Canny
+    image_gray = cv.cvtColor(img, cv.COLOR_RGB2GRAY)
+    blurred = cv.GaussianBlur(image_gray, (5, 5), 0)
+    # closed = cv2.morphologyEx(blurred, cv2.MORPH_OPEN, np.ones([5,5]))
+    edges = cv.Canny(blurred, 40, 120)
+    edges = cv.morphologyEx(edges, cv.MORPH_DILATE, np.ones([5, 5]))
+    #############################################################################
+
+    contours, hierarchy = cv.findContours(edges, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_NONE)
+    contour = max(contours, key=len)
+
+    # List of contours (np arrays) where pos 0 is the biggest in length
+    reversed_sorted_contours = sorted(contours, key=len, reverse=True)
+
+    # cv2.drawContours(img_c, contours, contourIdx=-1, color=(255,255,255),thickness=-1)
+    mask = np.zeros(shape=img.shape[:2])
+
+    # Consider largest contour to be the first painting
+    first_contour = reversed_sorted_contours[0]
+
+    list_of_painting_coordinates = []
+
+    # First painting
+    # TODO: min(Aw,Ah) > max(Aw,Ah)/5
+    Ax, Ay, Aw, Ah = cv.boundingRect(first_contour)
+    list_of_painting_coordinates.append([Ax, Ay, Ax+Aw, Ay+Ah])
+    mask[Ay:Ay+Ah, Ax:Ax+Aw] = 1
+    image_bb = image.copy()
+    cv.rectangle(image_bb, (Ax, Ay), (Ax + Aw, Ay + Ah), (0, 255, 0), 15)
+
+    # Second painting (not always there is a second painting)
+    # print("="*25)
+    for contour in reversed_sorted_contours:
+        if not contours_overlap(first_contour, contour):
+            Bx, By, Bw, Bh = cv.boundingRect(contour)
+            if (Bw * Bh) > ((Aw * Ah) / 5) and min(Bw,Bh) > max(Bw,Bh)/5:  # area of the second painting is
+                # print("Width: ", Bw)
+                # print("Height: ", Bh)
+                list_of_painting_coordinates.append([Bx, By, Bx+Bw, By+Bh])
+                mask[By:By+Bh, Bx:Bx+Bw] = 1
+                # cv.rectangle(image_bb, (Bx, By), (Bx + Bw, By + Bh), (0, 255, 0), 15)
+            else:
+                break
+    # plt.imshow(image_bb)
+    # plt.show()
     if save:
         if not os.path.exists(f'../datasets/masks_extracted/canny/'):
             os.makedirs(f'../datasets/masks_extracted/canny/')

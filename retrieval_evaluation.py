@@ -119,8 +119,8 @@ def main(queryset_name, descriptor, measure, k, similarity, background, bbox):
             # author = ocr(im, box_masks[i])
 
             # Denoise image
-            denoised_imgs = [dn.denoise_img(painting) for painting in paintings]
-            paintings = [p['color'] for p in denoised_imgs]
+            paintings = [dn.denoise_img(painting) for painting in paintings]
+            #  = [p['color'] for p in denoised_imgs]
 
             # get a dict with the descriptors for the n pictures per painting
             temp_list = []
@@ -160,7 +160,7 @@ def main(queryset_name, descriptor, measure, k, similarity, background, bbox):
     predicted = []
     for query_descript_dic in qs_descript_list:
         predicted.append([cbir.get_top_k_multi(p, \
-                        db_descript_list, [descriptor,'hsv_multiresolution'], [0.5,0.5], measure, similarity, k, {'author': 0.3}) \
+                        db_descript_list, [descriptor, 'hsv_multiresolution'], [0.5, 0.5], measure, similarity, k, {'author': 0.3}) \
                         for p in query_descript_dic])
 
     # For generating submission pkl
