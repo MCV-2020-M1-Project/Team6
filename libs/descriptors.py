@@ -3,7 +3,6 @@ import numpy as np
 from skimage.feature import local_binary_pattern, hog
 import pytesseract
 
-
 def get_hog(im):
     resized_im = cv2.resize(im, (512,512))
     H = hog(resized_im, orientations=9, pixels_per_cell=(15, 15), cells_per_block=(2, 2), #TODO try smaller pixels per cell
