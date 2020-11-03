@@ -3,6 +3,8 @@ import numpy as np
 import matplotlib.pyplot as plt
 import os
 import pickle as pkl
+from libs import box_retrieval,background_removal
+import retrieval_evaluation as re
 
 # gray= cv2.cvtColor(img,cv2.COLOR_BGR2GRAY)
 # sift = cv2.SIFT_create()
@@ -15,15 +17,34 @@ import pickle as pkl
 # cv2.waitKey()
 # cv2.imwrite('sift_keypoints.jpg',img)
 
-def get_SIFT_desc(img):
+def get_SIFT_desc(img, mask=None):
     # Initiate SIFT detector
     sift = cv2.SIFT_create()
     # find the keypoints and descriptors with SIFT
-    kp1, des1 = sift.detectAndCompute(img,None)
-    temp = dict([('des',des1)])
+    kp1, des1 = sift.detectAndCompute(img,mask)
+    temp = des1
     # print(temp)
     return temp
 
+def get_SURF_desc(img, mask=None):
+    # Initiate SIFT detector
+    surf = cv2.xfeatures2d.SURF_create(400)
+    surf.setExtended(True)
+    # find the keypoints and descriptors with SIFT
+    kp1, des1 = surf.detectAndCompute(img,mask)
+    temp = des1
+    # print(temp)
+    return temp
+
+def get_ORB_desc(img, mask=None):
+    # Initiate ORB detector
+    orb = cv2.ORB_create()
+    # find the keypoints with ORB
+    kp = orb.detect(img, mask)
+    # compute the descriptors with ORB
+    kp, des1 = orb.compute(img, kp)
+    temp = des1
+    return temp
 
 def SIFT(img1,img2):
     # Initiate SIFT detector
@@ -71,69 +92,103 @@ def load_index():
         db_descript_list = pkl.load(dbfile)
     return db_descript_list
 
-def get_measures_SIFT(img1,mask,BFF=True):
-    results = []
-    # Initiate SIFT detector
-    sift = cv2.SIFT_create()
-    # find the keypoints and descriptors with SIFT
-    kp1, des1= sift.detectAndCompute(img1,mask=mask)
+def get_bf_matching(des1, des2,descriptor=None):
+    if descriptor == 'orb2':
+        bf = cv2.BFMatcher(cv2.NORM_HAMMING, crossCheck=True)
+        # Match descriptors.
+        matches = bf.match(des1, des2)
+        # Sort them in the order of their distance.
+        matches = sorted(matches, key=lambda x: x.distance)
+    else:
+        bf = cv2.BFMatcher()
+        matches = bf.knnMatch(des1, des2, k=2)
+    return matches
 
+def get_flann_matching(des1, des2):
+    FLANN_INDEX_KDTREE = 1
+    index_params = dict(algorithm=FLANN_INDEX_KDTREE, trees=5)
+    search_params = dict(checks=50)  # or pass empty dictionary
+    flann = cv2.FlannBasedMatcher(index_params, search_params)
+    matches = flann.knnMatch(des1, des2, k=2)
+    return matches
+
+def get_best_matches(des1,descriptor, measure = 'BFM'):
+    results = []
     db_list = load_index()
-    print(db_list[2].values())
 
     for item in db_list:
         # print(item.keys())
         print('idex=',item['idx'])
-        des2 = item['des']
+        print("desc=",descriptor)
+        des2 = item[descriptor]
         if des2 is None: continue
         # print(type(des2[0]))
-        print('measures=',des2.shape)
+        print('shape of des=',des2.shape)
         # quit()
-        if BFF:
-            bf = cv2.BFMatcher()
-            matches = bf.knnMatch(des1, des2, k=2)
-        else:
-            # FLANN parameters
-            FLANN_INDEX_KDTREE = 1
-            index_params = dict(algorithm=FLANN_INDEX_KDTREE, trees=5)
-            search_params = dict(checks=50)  # or pass empty dictionary
-            flann = cv2.FlannBasedMatcher(index_params, search_params)
-            matches = flann.knnMatch(des1, des2, k=2)
+        if measure == 'BFM':
+            matches = get_bf_matching(des1,des2, descriptor)
+        elif measure == 'flann':
+            matches = get_flann_matching(des1, des2)
         # Apply ratio test
         good = []
         for m, n in matches:
-            if m.distance < 0.6 * n.distance:
+            if m.distance < 0.75 * n.distance:
                 good.append([m])
         # cv.drawMatchesKnn expects list of lists as matches.
         print(item['idx'] ,' , matching points= ', len(good))
         results.append((item['idx'],len(good)))
     return results
 
-# img1 = cv2.imread(r'../../datasets/BBDD/bbdd_00104.jpg')
-img2 = cv2.imread(r'../../datasets/qsd1_w4/00008.jpg', cv2.IMREAD_COLOR)
-# ORB(img1,img2)
-# SIFT(img1, img2)
+def compare_SIFT(img1,descriptor='sift',mask=None,measure='BFM'):
+    # Initiate SIFT detector
+    des1 = get_SIFT_desc(img1,mask)
+    db_list = load_index()
+    # print(db_list[2].values())
 
-# get_SIFT_desc(img2)
+    return get_best_matches(des1,descriptor, measure)
 
-from libs import box_retrieval,background_removal
-import retrieval_evaluation as re
+def compare_SURF(img1,descriptor='surf',mask=None,measure='BFM'):
+    # Initiate SIFT detector
+    des1 = get_SURF_desc(img1,mask)
+    db_list = load_index()
+    # print(db_list[2].values())
 
-mask_background = background_removal.method_canny_multiple_paintings(img2.copy())[1]
+    return get_best_matches(des1,descriptor, measure)
 
-masks = re.sort_rects_lrtb(mask_background)
-print(masks)
-for mask in mask_background:
-    if abs(mask[1] - mask[3]) < 50:
-        continue
+def compare_ORB(img1,descriptor='orb',mask=None,measure='BFM'):
+    # Initiate ORB detector
+    des1 = get_ORB_desc(img1,mask)
 
-    v1 = mask[:2]
-    v2 = mask[2:]
-    img_no_bg = img2[v1[1]:v2[1], v1[0]:v2[0]]
+    db_list = load_index()
+    # print(db_list[2].values())
 
-mask = box_retrieval.get_boxes(img_no_bg)
+    return get_best_matches(des1,descriptor,measure)
 
-results = get_measures_SIFT(img_no_bg, 1-mask, False)
+def main():
+    # img1 = cv2.imread(r'../../datasets/BBDD/bbdd_00104.jpg')
+    img2 = cv2.imread(r'../../datasets/qsd1_w4/00008.jpg', cv2.IMREAD_COLOR)
+    # ORB(img1,img2)
+    # SIFT(img1, img2)
+    # get_SIFT_desc(img2)
 
-results.sort(key=lambda x: x[1],reverse=True)
-print(results[:3])
+    mask_background = background_removal.method_canny_multiple_paintings(img2.copy())[1]
+
+    masks = re.sort_rects_lrtb(mask_background)
+    # print(masks)
+    for mask in mask_background:
+        if abs(mask[1] - mask[3]) < 50:
+            continue
+
+        v1 = mask[:2]
+        v2 = mask[2:]
+        img_no_bg = img2[v1[1]:v2[1], v1[0]:v2[0]]
+
+    mask = box_retrieval.get_boxes(img_no_bg)
+
+    # results = compare_SIFT(img_no_bg, descriptor='sift',mask= 1-mask, measure='flann')
+    results = compare_ORB(img_no_bg,descriptor='orb', mask=1-mask, measure='BFM')
+
+    results.sort(key=lambda x: x[1],reverse=True)
+    print(results[:3])
+
+main()

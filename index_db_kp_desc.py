@@ -10,9 +10,12 @@ for i in range(287):
     if i % 20 == 0: print(i)
     img_path = ['..', 'datasets', 'BBDD', 'bbdd_' + '{:05d}'.format(i) + '.jpg']
     img = cv2.imread(os.path.join(*img_path), cv2.IMREAD_COLOR)
-    temp_dict = kp_descriptors.get_SIFT_desc(img)
+    temp_dict={}
+    temp_dict['sift'] = kp_descriptors.get_SIFT_desc(img)
+    temp_dict['orb'] = kp_descriptors.get_ORB_desc(img)
+    # temp_dict['surf'] = kp_descriptors.get_SURF_desc(img)
     print(os.path.join(*img_path))
-    print(temp_dict.values())
+    # print(temp_dict.values())
     temp_dict['idx'] = i
     descript_dic_list.append(temp_dict)  # get a dic with the descriptors for the img
 
