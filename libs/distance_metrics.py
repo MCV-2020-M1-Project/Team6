@@ -15,6 +15,42 @@ from difflib import SequenceMatcher
 import numpy as np
 import cv2
 
+def get_bf_matching(des1, des2):
+    if des2 is None: return 0
+    try:
+        bf = cv2.BFMatcher()
+        matches = bf.knnMatch(des1, des2, k=2)
+        # Apply ratio test
+        good_matches = []
+        for m, n in matches:
+            if m.distance < 0.6 * n.distance:
+                good_matches.append([m])
+    except cv2.error():
+        bf = cv2.BFMatcher(cv2.NORM_HAMMING, crossCheck=True)
+        # Match descriptors.
+        matches = bf.match(des1, des2)
+        # Sort them in the order of their distance.
+        good_matches = sorted(matches, key=lambda x: x.distance)
+
+    return len(good_matches)
+
+
+def get_flann_matching(des1,des2):
+    if des2 is None:
+        # print("des = 0")
+        return 0
+    FLANN_INDEX_KDTREE = 1
+    index_params = dict(algorithm=FLANN_INDEX_KDTREE, trees=5)
+    search_params = dict(checks=50)  # or pass empty dictionary
+    flann = cv2.FlannBasedMatcher(index_params, search_params)
+    matches = flann.knnMatch(des1, des2, k=2)
+    # Apply ratio test
+    good_matches = []
+    for m, n in matches:
+        if m.distance < 0.6 * n.distance:
+            good_matches.append([m])
+    return len(good_matches)
+
 def gestalt(a, b):
     '''
     Returns difference ration between two strings
@@ -153,7 +189,7 @@ def get_hellinger_kernel(descriptor_a, descriptor_b):
     return np.sum(np.sqrt(descriptor_a*descriptor_b))
 
 
-def get_correlation(a, b):  
+def get_correlation(a, b):
     '''
     Correlation, implemented according to opencv documentation on histogram comparison
     '''
@@ -178,7 +214,7 @@ def display_comparison(a, b):
     text = [
             #'Euclidean: ' + str(round(distances['eucl'], 2)),
             'X2: ' + str(round(distances['x2'], 2)),
-            'L1: ' + str(round(distances['l1'], 2)) 
+            'L1: ' + str(round(distances['l1'], 2))
             # 'Hist intersection: ' + str(round(distances['h_inter'], 2)),
             # 'Hellinger Kernel: ' + str(round(distances['hell_ker'], 2)),
             # 'Correlation: ' + str(round(distances['corr'], 2)),
@@ -204,7 +240,7 @@ def display_comparison(a, b):
 
     ## Draw second hist
     for k, v in enumerate(b):
-        cv2.line(display_m_img, (int(hist_sq_size[0]*k/len(b)) + x_offset, bt_y_hist_2), 
+        cv2.line(display_m_img, (int(hist_sq_size[0]*k/len(b)) + x_offset, bt_y_hist_2),
                                 (int(hist_sq_size[0]*k/len(b)) + x_offset, bt_y_hist_2 - int(hist_sq_size[1]*v/max(b))),
                                 (0, 0, 255)
                                 )
@@ -221,7 +257,7 @@ def display_comparison(a, b):
     return
 
 
-def get_all_measures(a, b, display=False, text=False):
+def get_all_measures(a, b, display=False, mode='color'):
     '''
     Return a dictionary with all available measures. Keys are:
     * 'eucl': Euclidean distance
@@ -231,22 +267,27 @@ def get_all_measures(a, b, display=False, text=False):
     * 'hell_ker': Hellinger kernel (similarity)
     * 'corr': correlation
     '''
-    if text:
+    if mode=='text':
         measures =  {
                     'gestalt': gestalt(a, b)
                     # 'levenshtein':levenshtein(a,b),
                     # 'hamming': hamming(a, b)
                     }
         # print(measures['gestalt'])
-    else:
+    elif mode == 'color':
         measures =  {
                     # 'eucl': get_euclidean_distance(a, b),
                     'l1': get_l1_distance(a, b),
-                    'x2': get_x2_distance(a, b),
+                    'x2': get_x2_distance(a, b)
                     # 'h_inter': get_hist_intersection(a, b),
-                    # 'hell_ker': get_hellinger_kernel(a, b), 
+                    # 'hell_ker': get_hellinger_kernel(a, b),
                     # 'corr': get_correlation(a, b),
                     # 'chisq': get_chisq_distance(a, b)
+                    }
+    elif mode == 'kp':
+        measures =  {
+                    'bfm': get_bf_matching(a, b),
+                    # 'flann': get_flann_matching(a, b)
                     }
 
     if display:

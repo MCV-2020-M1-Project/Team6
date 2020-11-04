@@ -26,7 +26,7 @@ def sort_rects_lrtb(rect_list):
     return sorted(rect_list, key = lambda x: (x[0], x[1]))
 
 
-def main(queryset_name, descriptor, measure, k, similarity, background, bbox):
+def main(queryset_name, descriptor, measure, k, similarity, background, bbox, ocr):
     '''
     Main function
     '''
@@ -103,7 +103,7 @@ def main(queryset_name, descriptor, measure, k, similarity, background, bbox):
                 a = np.where(mask > 0)
                 pts = [(i, j) for i,j in zip(*a)]
 
-                if len(pts) == 0:
+                if len(pts) == 0 or not ocr:
                     text_list.append('')
                     continue
                 # print(pts[0], pts[-1])
@@ -160,9 +160,9 @@ def main(queryset_name, descriptor, measure, k, similarity, background, bbox):
     predicted = []
     for query_descript_dic in qs_descript_list:
         predicted.append([cbir.get_top_k_multi(p, \
-                        db_descript_list, [descriptor, 'hsv_multiresolution'], [0.5, 0.5], measure, similarity, k, {'author': 0.3}) \
+                        db_descript_list, [descriptor], [1], measure, similarity, k, {'author': 0.3}) \
                         for p in query_descript_dic])
-
+    # {'author': 0.3}
     # For generating submission pkl
     # with open('../dlcv06/m1-results/week2/QST2/method2/result.pkl', 'wb') as f:
     #     pkl.dump(predicted, f)
@@ -221,7 +221,8 @@ if __name__ == "__main__":
     parser.add_argument('-b', '--background', required=False, default=False, action='store_true')
     parser.add_argument('-s', '--similarity', required=False, default=False, action='store_true')
     parser.add_argument('-bb', '--bbox', required=False, default=False, action='store_true')
+    parser.add_argument('-o', '--ocr', required=False, default=False, action='store_true')
 
     args = parser.parse_args()
 
-    main(args.q, args.d, args.m, args.k, args.similarity, args.background, args.bbox)
+    main(args.q, args.d, args.m, args.k, args.similarity, args.background, args.bbox, args.ocr)
