@@ -15,7 +15,13 @@ from difflib import SequenceMatcher
 import numpy as np
 import cv2
 
+
 def get_bf_matching(des1, des2):
+    """
+    bf matching for ORB is specific, therefore when error is caught running ORB
+    it triggers different setting
+    both returning number of matches
+    """
     if des2 is None: return 0
     try:
         bf = cv2.BFMatcher()
@@ -35,14 +41,18 @@ def get_bf_matching(des1, des2):
     return len(good_matches)
 
 
-def get_flann_matching(des1,des2):
+def get_flann_matching(des1, des2):
+    """
+    Does not work for ORB descriptor, try except caches the error when calculating for orb and
+    returning 0
+    """
     if des2 is None:
         # print("des = 0")
         return 0
     try:
         FLANN_INDEX_KDTREE = 1
         index_params = dict(algorithm=FLANN_INDEX_KDTREE, trees=5)
-        search_params = dict(checks=50)  # or pass empty dictionary
+        search_params = dict(checks=75)  # or pass empty dictionary
         flann = cv2.FlannBasedMatcher(index_params, search_params)
         matches = flann.knnMatch(des1, des2, k=2)
         # Apply ratio test
@@ -54,11 +64,12 @@ def get_flann_matching(des1,des2):
         return 0
     return len(good_matches)
 
+
 def gestalt(a, b):
     '''
     Returns difference ration between two strings
     '''
-    if a is None or a == '' or b is None or b == '' :
+    if a is None or a == '' or b is None or b == '':
         return 1
 
     result = 1 - SequenceMatcher(None, a, b).ratio()
@@ -75,17 +86,17 @@ def longest_common_subsequence(X, Y, m, n):
     '''
     if m == 0 or n == 0:
         return 0
-    elif X[m-1] == Y[n-1]:
-        return 1 + longest_common_subsequence(X, Y, m-1, n-1)
+    elif X[m - 1] == Y[n - 1]:
+        return 1 + longest_common_subsequence(X, Y, m - 1, n - 1)
     else:
-        return max(longest_common_subsequence(X, Y, m, n-1), longest_common_subsequence(X, Y, m-1, n))
+        return max(longest_common_subsequence(X, Y, m, n - 1), longest_common_subsequence(X, Y, m - 1, n))
 
 
 def longest_common_substring(X, Y, m, n):
     '''
     From: https://www.geeksforgeeks.org/longest-common-substring-dp-29/
     '''
-    LCSuff = [[0 for k in range(n+1)] for l in range(m+1)]
+    LCSuff = [[0 for k in range(n + 1)] for l in range(m + 1)]
 
     result = 0
 
@@ -93,8 +104,8 @@ def longest_common_substring(X, Y, m, n):
         for j in range(n + 1):
             if i == 0 or j == 0:
                 LCSuff[i][j] = 0
-            elif X[i-1] == Y[j-1]:
-                LCSuff[i][j] = LCSuff[i-1][j-1] + 1
+            elif X[i - 1] == Y[j - 1]:
+                LCSuff[i][j] = LCSuff[i - 1][j - 1] + 1
                 result = max(result, LCSuff[i][j])
             else:
                 LCSuff[i][j] = 0
@@ -105,15 +116,15 @@ def levenshtein(str1, str2):
     '''
     From: https://es.wikipedia.org/wiki/Distancia_de_Levenshtein#El_algoritmo 
     '''
-    d=dict()
-    for i in range(len(str1)+1):
-        d[i]=dict()
-        d[i][0]=i
-    for i in range(len(str2)+1):
+    d = dict()
+    for i in range(len(str1) + 1):
+        d[i] = dict()
+        d[i][0] = i
+    for i in range(len(str2) + 1):
         d[0][i] = i
-    for i in range(1, len(str1)+1):
-        for j in range(1, len(str2)+1):
-            d[i][j] = min(d[i][j-1]+1, d[i-1][j]+1, d[i-1][j-1]+(not str1[i-1] == str2[j-1]))
+    for i in range(1, len(str1) + 1):
+        for j in range(1, len(str2) + 1):
+            d[i][j] = min(d[i][j - 1] + 1, d[i - 1][j] + 1, d[i - 1][j - 1] + (not str1[i - 1] == str2[j - 1]))
     return d[len(str1)][len(str2)]
 
 
@@ -142,8 +153,8 @@ def compare_text(a, b):
     results = []
     results.append(hamming(a, b))
     results.append(levenshtein(a, b))
-    results.append( max(len(a), len(b))-longest_common_substring(a,b, len(a), len(b)))
-    results.append( max(len(a), len(b))-longest_common_subsequence(a,b, len(a), len(b)))
+    results.append(max(len(a), len(b)) - longest_common_substring(a, b, len(a), len(b)))
+    results.append(max(len(a), len(b)) - longest_common_subsequence(a, b, len(a), len(b)))
     results.append(round(gestalt(a, b), 2))
 
     return results
@@ -154,7 +165,7 @@ def get_euclidean_distance(descriptor_a, descriptor_b):
     Gets descriptors as numpy arrays and returns Euclidean distance (pylint get off my back)
     '''
     dif = descriptor_a - descriptor_b
-    return np.sqrt(np.sum(dif*dif))
+    return np.sqrt(np.sum(dif * dif))
 
 
 def get_l1_distance(descriptor_a, descriptor_b):
@@ -170,8 +181,8 @@ def get_x2_distance(descriptor_a, descriptor_b):
     '''
     dif = descriptor_a - descriptor_b
 
-    num = dif*dif
-    den = descriptor_a+descriptor_b
+    num = dif * dif
+    den = descriptor_a + descriptor_b
     return np.sum(np.divide(num, den, out=np.zeros_like(num), where=den != 0))
 
 
@@ -189,7 +200,7 @@ def get_hellinger_kernel(descriptor_a, descriptor_b):
     if any(descriptor_a < 0) or any(descriptor_b < 0):
         print('All descriptor entries should be positive')
         return -1
-    return np.sum(np.sqrt(descriptor_a*descriptor_b))
+    return np.sum(np.sqrt(descriptor_a * descriptor_b))
 
 
 def get_correlation(a, b):
@@ -199,7 +210,7 @@ def get_correlation(a, b):
     dev_a = (a - np.mean(a))
     dev_b = (b - np.mean(b))
 
-    return np.sum(dev_a*dev_b) / np.sqrt(np.sum(dev_a*dev_a)*np.sum(dev_b*dev_b))
+    return np.sum(dev_a * dev_b) / np.sqrt(np.sum(dev_a * dev_a) * np.sum(dev_b * dev_b))
 
 
 def display_comparison(a, b):
@@ -215,14 +226,14 @@ def display_comparison(a, b):
     distances = get_all_measures(a, b)
     # measures
     text = [
-            #'Euclidean: ' + str(round(distances['eucl'], 2)),
-            'X2: ' + str(round(distances['x2'], 2)),
-            'L1: ' + str(round(distances['l1'], 2))
-            # 'Hist intersection: ' + str(round(distances['h_inter'], 2)),
-            # 'Hellinger Kernel: ' + str(round(distances['hell_ker'], 2)),
-            # 'Correlation: ' + str(round(distances['corr'], 2)),
-            # 'Chi square:' + str(round(distances['chisq'], 2))
-        ]
+        # 'Euclidean: ' + str(round(distances['eucl'], 2)),
+        'X2: ' + str(round(distances['x2'], 2)),
+        'L1: ' + str(round(distances['l1'], 2))
+        # 'Hist intersection: ' + str(round(distances['h_inter'], 2)),
+        # 'Hellinger Kernel: ' + str(round(distances['hell_ker'], 2)),
+        # 'Correlation: ' + str(round(distances['corr'], 2)),
+        # 'Chi square:' + str(round(distances['chisq'], 2))
+    ]
 
     # Draw histograms
     ## Some position parameters
@@ -236,17 +247,17 @@ def display_comparison(a, b):
 
     ## Draw first hist
     for k, v in enumerate(a):
-        cv2.line(display_m_img, (int(hist_sq_size[0]*k/len(a)) + x_offset, bt_y_hist_1),
-                                (int(hist_sq_size[0]*k/len(a)) + x_offset, bt_y_hist_1 - int(hist_sq_size[1]*v/max(a))),
-                                (0, 255, 0)
-                                )
+        cv2.line(display_m_img, (int(hist_sq_size[0] * k / len(a)) + x_offset, bt_y_hist_1),
+                 (int(hist_sq_size[0] * k / len(a)) + x_offset, bt_y_hist_1 - int(hist_sq_size[1] * v / max(a))),
+                 (0, 255, 0)
+                 )
 
     ## Draw second hist
     for k, v in enumerate(b):
-        cv2.line(display_m_img, (int(hist_sq_size[0]*k/len(b)) + x_offset, bt_y_hist_2),
-                                (int(hist_sq_size[0]*k/len(b)) + x_offset, bt_y_hist_2 - int(hist_sq_size[1]*v/max(b))),
-                                (0, 0, 255)
-                                )
+        cv2.line(display_m_img, (int(hist_sq_size[0] * k / len(b)) + x_offset, bt_y_hist_2),
+                 (int(hist_sq_size[0] * k / len(b)) + x_offset, bt_y_hist_2 - int(hist_sq_size[1] * v / max(b))),
+                 (0, 0, 255)
+                 )
 
     ## Display text
     y = measure_text_pos[1]
@@ -270,28 +281,28 @@ def get_all_measures(a, b, display=False, mode='color'):
     * 'hell_ker': Hellinger kernel (similarity)
     * 'corr': correlation
     '''
-    if mode=='text':
-        measures =  {
-                    'gestalt': gestalt(a, b)
-                    # 'levenshtein':levenshtein(a,b),
-                    # 'hamming': hamming(a, b)
-                    }
+    if mode == 'text':
+        measures = {
+            'gestalt': gestalt(a, b)
+            # 'levenshtein':levenshtein(a,b),
+            # 'hamming': hamming(a, b)
+        }
         # print(measures['gestalt'])
     elif mode == 'color':
-        measures =  {
-                    # 'eucl': get_euclidean_distance(a, b),
-                    'l1': get_l1_distance(a, b),
-                    'x2': get_x2_distance(a, b)
-                    # 'h_inter': get_hist_intersection(a, b),
-                    # 'hell_ker': get_hellinger_kernel(a, b),
-                    # 'corr': get_correlation(a, b),
-                    # 'chisq': get_chisq_distance(a, b)
-                    }
+        measures = {
+            # 'eucl': get_euclidean_distance(a, b),
+            'l1': get_l1_distance(a, b),
+            # 'x2': get_x2_distance(a, b),
+            # 'h_inter': get_hist_intersection(a, b),
+            # 'hell_ker': get_hellinger_kernel(a, b),
+            'corr': get_correlation(a, b),
+            # 'chisq': get_chisq_distance(a, b)
+        }
     elif mode == 'kp':
-        measures =  {
-                    'bfm': get_bf_matching(a, b),
-                    'flann': get_flann_matching(a, b)
-                    }
+        measures = {
+            # 'bfm': get_bf_matching(a, b),
+            # 'flann': get_flann_matching(a, b)
+        }
 
     if display:
         for k, v in measures.items():

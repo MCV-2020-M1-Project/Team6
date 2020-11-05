@@ -3,8 +3,9 @@ import numpy as np
 import matplotlib.pyplot as plt
 import os
 import pickle as pkl
-from libs import box_retrieval,background_removal
+from libs import box_retrieval,background_removal,distance_metrics
 import retrieval_evaluation as re
+from skimage.feature import daisy
 
 # gray= cv2.cvtColor(img,cv2.COLOR_BGR2GRAY)
 # sift = cv2.SIFT_create()
@@ -22,16 +23,6 @@ def get_SIFT_desc(img, mask=None):
     sift = cv2.SIFT_create()
     # find the keypoints and descriptors with SIFT
     kp1, des1 = sift.detectAndCompute(img,mask)
-    temp = des1
-    # print(temp)
-    return temp
-
-def get_SURF_desc(img, mask=None):
-    # Initiate SIFT detector
-    surf = cv2.xfeatures2d.SURF_create(400)
-    surf.setExtended(True)
-    # find the keypoints and descriptors with SIFT
-    kp1, des1 = surf.detectAndCompute(img,mask)
     temp = des1
     # print(temp)
     return temp
@@ -83,7 +74,6 @@ def ORB(img1,img2):
     print(len(matches))
     img3 = cv2.drawMatches(img1, kp1, img2, kp2, matches[:10], None, flags=cv2.DrawMatchesFlags_NOT_DRAW_SINGLE_POINTS)
     plt.imshow(img3), plt.show()
-
 
 def load_index():
     path = ['..','pkl_data','kp_bd_descriptors.pkl'] #for making the path system independent
@@ -147,14 +137,6 @@ def compare_SIFT(img1,descriptor='sift',mask=None,measure='BFM'):
 
     return get_best_matches(des1,descriptor, measure)
 
-def compare_SURF(img1,descriptor='surf',mask=None,measure='BFM'):
-    # Initiate SIFT detector
-    des1 = get_SURF_desc(img1,mask)
-    db_list = load_index()
-    # print(db_list[2].values())
-
-    return get_best_matches(des1,descriptor, measure)
-
 def compare_ORB(img1,descriptor='orb',mask=None,measure='BFM'):
     # Initiate ORB detector
     des1 = get_ORB_desc(img1,mask)
@@ -164,9 +146,43 @@ def compare_ORB(img1,descriptor='orb',mask=None,measure='BFM'):
 
     return get_best_matches(des1,descriptor,measure)
 
+def DAISY(img1, img2):
+    img1 = cv2.cvtColor(img1,cv2.COLOR_BGR2GRAY)
+    img2 = cv2.cvtColor(img2, cv2.COLOR_BGR2GRAY)
+    img1 = cv2.resize(img1, (512, 512), img1)
+    img2 = cv2.resize(img2, (512, 512), img2)
+
+    des1,viz1= daisy(img1, step=180, radius=58, rings=2, histograms=6,
+                         orientations=8, visualize=True)
+    len(des1)
+
+    des2,viz2= daisy(img2, step=180, radius=58, rings=2, histograms=6,
+                         orientations=8, visualize=True)
+    # BFMatcher with default params
+    # result = get_flann_matching(des1[0],des2[0])
+
+    # cv.drawMatchesKnn expects list of lists as matches.
+    # print(len(result))
+
+    vectors = min(len(des1), len(des2))
+    hist1 = np.concatenate([des1[x][y] for x in range(0, vectors) for y in range(0, vectors)])
+    hist2 = np.concatenate([des2[x][y] for x in range(0, vectors) for y in range(0, vectors)])
+    outcome =distance_metrics.get_l1_distance(hist1,hist2)
+
+    print('hist=',len(hist1))
+
+    result = outcome
+
+
+    return viz1,viz2,result
+
+
 def main():
     # img1 = cv2.imread(r'../../datasets/BBDD/bbdd_00104.jpg')
+    # img2 = cv2.imread(r'../../datasets/qsd1_w4/00008.jpg', cv2.IMREAD_COLOR)
+    img1 = cv2.imread(r'../../datasets/BBDD/bbdd_00104.jpg')
     img2 = cv2.imread(r'../../datasets/qsd1_w4/00008.jpg', cv2.IMREAD_COLOR)
+    # 250,6
     # ORB(img1,img2)
     # SIFT(img1, img2)
     # get_SIFT_desc(img2)
@@ -175,7 +191,7 @@ def main():
 
     masks = re.sort_rects_lrtb(mask_background)
     # print(masks)
-    for mask in mask_background:
+    for mask in masks:
         if abs(mask[1] - mask[3]) < 50:
             continue
 
@@ -184,11 +200,30 @@ def main():
         img_no_bg = img2[v1[1]:v2[1], v1[0]:v2[0]]
 
     mask = box_retrieval.get_boxes(img_no_bg)
+    # des= DAISY(img_no_bg)
+    img1=cv2.resize(img1,(512,512),img1)
+    img_no_bg = cv2.resize(img_no_bg, (512, 512), img_no_bg)
 
+    # SIFT(img1,img_no_bg)
+    ORB(img1,img_no_bg)
+    viz1,viz2, result = DAISY(img1,img_no_bg)
+
+    viz1=cv2.resize(viz1, (512,512),viz1)
+    viz2=cv2.resize(viz2, (512, 512), viz2)
+    print('shape1',viz1.shape)
+    print('shape2', viz2.shape)
+    print('result=',result)
+    cv2.imshow('viz1', viz1)
+    cv2.imshow('viz2',viz2)
+    cv2.waitKey()
+    quit()
     # results = compare_SIFT(img_no_bg, descriptor='sift',mask= 1-mask, measure='flann')
+    print('surf')
     results = compare_ORB(img_no_bg,descriptor='orb', mask=1-mask, measure='BFM')
 
     results.sort(key=lambda x: x[1],reverse=True)
     print(results[:3])
 
 main()
+
+# hist = np.concatenate(des1[x][y] for x in range(0, vectors))

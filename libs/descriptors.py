@@ -1,8 +1,17 @@
 import cv2
 import numpy as np
-from skimage.feature import local_binary_pattern, hog
+from skimage.feature import local_binary_pattern, hog,daisy
 import pytesseract
 
+def get_daisy_desc(img):
+    img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+    img = cv2.resize(img, (512, 512), img)
+    des1= daisy(img, step=180, radius=58, rings=2, histograms=6,
+                         orientations=8, visualize=False)
+    vectors = len(des1)
+    hist1 = np.concatenate([des1[x][y] for x in range(0, vectors) for y in range(0, vectors)])
+    cv2.normalize(hist1, hist1, norm_type=cv2.NORM_L2, alpha=1.)
+    return hist1
 
 def get_sift_desc(img, mask=None):
     # Initiate SIFT detector
@@ -12,6 +21,7 @@ def get_sift_desc(img, mask=None):
     # temp = dict([('des',des1)])
     # print(temp)
     return des1
+
 
 def get_orb_desc(img, mask=None):
     # Initiate ORB detector
@@ -40,10 +50,45 @@ def get_dct(img, N=100):
     return subset.flatten()
 
 
-def get_lbp(img, radius=3., n_points=None, method='uniform'):
+def get_lbp(img, radius=2., block_w=8, n_points=None, method='uniform'):
+    """
+    dividing image to shape//block_w blocks
+    calculating LBP for each block creating histogram out of LBP output
+    concatinating histograms
+    """
     n_points = 8 * radius if n_points is None else n_points
-    lbim = local_binary_pattern(img, n_points, radius, method)
-    return np.uint8(255 * (lbim - lbim.min()) / (lbim.max() - lbim.min()))
+
+    img = cv2.resize(img, (512, 512))
+    img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+    shape = img.shape
+
+    h_blocks = shape[1] // block_w
+    w_blocks = shape[0] // block_w
+    list_hist = []
+
+    for number_w in range(0, w_blocks):
+        for number_h in range(0, h_blocks):
+            if (number_w + 1) * block_w > shape[0]:
+                x_end = shape[0]
+            else:
+                x_end = (number_w + 1) * block_w
+            if (number_h + 1) * block_w > shape[1]:
+                y_end = shape[1]
+            else:
+                y_end = (number_h + 1) * block_w
+            x_front = number_w * block_w
+            y_front = number_h * block_w
+            img_block = img[x_front:x_end, y_front:y_end].copy()
+
+            lbim = local_binary_pattern(img_block, n_points, radius, method)
+            (hist, _) = np.histogram(lbim.ravel(), bins=np.arange(0,n_points+3),range=(0,n_points+2))
+            list_hist.append(hist)
+
+
+    full_hist = np.concatenate((list_hist))
+            # result =+ np.uint8(255 * (lbim - lbim.min()) / (lbim.max() - lbim.min()))
+
+    return full_hist
 
 
 def get_dct_coefs(image, n, block_w=8):
@@ -399,8 +444,10 @@ def get_descriptors(img, mask=None):
     # descript_dic['bgr_concat_hist'] = get_bgr_concat_hist(img, mask)
     # descript_dic['cielab_concat_hist'] = get_bgr_concat_hist(img, mask)
     # descript_dic['ycrcb_concat_hist'] = get_ycrcb_concat_hist(img, mask)
-    descript_dic['sift'] = get_sift_desc(img, mask)
-    descript_dic['orb'] = get_orb_desc(img, mask)
+    # descript_dic['sift'] = get_sift_desc(img, mask)
+    # descript_dic['orb'] = get_orb_desc(img, mask)
+    # descript_dic['daisy'] = get_daisy_desc(img)
+    descript_dic['lbp'] = get_lbp(img)
     # descript_dic['hsv_concat_hist'] = get_hsv_concat_hist(img, mask)
     # descript_dic['hs_concat_hist'] = get_hs_concat_hist(img, mask)
     # descript_dic['DCT-16'] = get_DCT_coefs(img, N=16)
@@ -417,7 +464,7 @@ def get_descriptors(img, mask=None):
     if mask is not None:
         mask_tiled = get_tile_partition(mask, 2, 2)
 
-    # descript_dic['hs_multi_hist'] = get_hs_multi_hist(tiles, mask_tiled)
+    descript_dic['hs_multi_hist'] = get_hs_multi_hist(tiles, mask_tiled)
     # descript_dic['hs_multiresolution'] = get_hs_multiresolution_hist(img, mask)
     # descript_dic['bgr_multiresolution'] = get_multiresolution_hist(img, mask)
     # descript_dic['hsv_multiresolution'] = get_multiresolution_hist(cv2.cvtColor(img, cv2.COLOR_BGR2HSV), mask)

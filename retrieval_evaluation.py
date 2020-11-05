@@ -159,6 +159,7 @@ def main(queryset_name, descriptor, measure, k, similarity, background, bbox, oc
 
     predicted = []
     for query_descript_dic in qs_descript_list:
+        print(len(predicted))
         predicted.append([cbir.get_top_k_multi(p, \
                         db_descript_list, [descriptor], [1], measure, similarity, k, {'author': 0.3}) \
                         for p in query_descript_dic])
