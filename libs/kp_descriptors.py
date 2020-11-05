@@ -18,6 +18,11 @@ from skimage.feature import daisy
 # cv2.waitKey()
 # cv2.imwrite('sift_keypoints.jpg',img)
 
+"""
+That's the file where you can quickly evaluate picture by picture and draw them
+works along with index_db_kp_desc
+"""
+
 def get_SIFT_desc(img, mask=None):
     # Initiate SIFT detector
     sift = cv2.SIFT_create()

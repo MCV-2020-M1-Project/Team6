@@ -3,6 +3,11 @@ import pickle as pkl
 import cv2
 from libs import kp_descriptors
 
+"""
+thats the file to be used with kp_descriptors for quick evaluations per one picture
+you can use normal index_db if you trigger evaliation for all datasets
+"""
+
 #Generate descriptors for all images in the BBDD
 descript_dic_list = []
 
