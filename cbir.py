@@ -10,23 +10,52 @@ from libs import distance_metrics as dists
 # from libs import box_retrieval as boxret
 
 
-def get_histogram_top_k_similar(query_descriptor, db_descriptor_list, descriptor, measure, similarity, k=3):
- 
+def get_top_k_multi(query, db_descriptor_list, descriptor_method_list, weights, measure_name, similarity, k, hier_desc_dict=None):
+    shorter_list = []
+    # Filter out by hierarchy
+    if hier_desc_dict is not None:
+        for desc_name, thresh in hier_desc_dict.items():
+            # Gazapo: Will only work with text
+            # print('HEY', query[desc_name])
+            for d in db_descriptor_list:
+                if dists.gestalt(query[desc_name], d[desc_name]) <= thresh:
+                    shorter_list.append(d)
+
+    if len(shorter_list) == 0:
+        shorter_list = db_descriptor_list
+    # print('QUERY:', query['author'])
+    # print('len db after', len(shorter_list))
+    # print('DB')
+    # for d in shorter_list:
+    #     print(d.keys())
+    
+    # get top k
+    return get_db_top_k(query, shorter_list, descriptor_method_list, weights, measure_name, similarity, k)
+
+
+def get_db_top_k(query_descriptor, db_descriptor_list, descriptor_method_list, weight_list, measure, similarity, k=3):
+
     distances_dict = {}
-    idx = 0
     for db_point in db_descriptor_list:
-        distances = dists.get_all_measures(query_descriptor, db_point[descriptor])
-        distances_dict[idx] = abs(distances[measure])
-        idx += 1
+        
+        # print('db:', db_point['author'])
+        img_idx = db_point['idx']
+        # print(img_idx)
+        distances_dict[img_idx] = 0
 
-    # for key in sorted(distances_dict, key=distances_dict.get, reverse=similarity)[:k]:
-    #     print(key, distances_dict[key])
+        for d, w in zip(descriptor_method_list, weight_list):
+            if measure == 'bfm' or measure =='flann':
+                distances = dists.get_all_measures(query_descriptor[d], db_point[d],mode='kp')
+                # print('measure=',distances[measure],'db_point=',db_point[d])
+                distances_dict[img_idx] += (distances[measure])
+            else:
+                distances = dists.get_all_measures(query_descriptor[d], db_point[d])
+                distances_dict[img_idx] += w * abs(distances[measure])
 
-    result = [key for key in sorted(distances_dict, key=distances_dict.get, reverse=similarity)[:k]]
-
-
-    return result
-
+    if measure == 'bfm' or measure == 'flann':
+        return sorted(distances_dict, key=distances_dict.get, reverse=similarity)[:k]
+    else:
+        return sorted(distances_dict, key=distances_dict.get, reverse=similarity)[:k]
 
 def main(img_name, descriptor, measure, k, background, similarity):
 
@@ -47,7 +76,7 @@ def main(img_name, descriptor, measure, k, background, similarity):
     query_descript_dic = desc.get_descriptors(query_img)
 
     ##task 3##
-    result = get_histogram_top_k_similar(query_descript_dic[descriptor], db_descript_list, \
+    result = get_top_k(query_descript_dic[descriptor], db_descript_list, \
         descriptor, measure, similarity, k)
 
     print('result:', result)

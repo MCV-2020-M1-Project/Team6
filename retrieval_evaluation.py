@@ -9,11 +9,14 @@ import argparse
 # Lib imports
 import ml_metrics as metrics
 import cv2
+import numpy as np
 # Our code imports
 import cbir
 from libs import descriptors as desc
 from libs import background_removal as bg
 from libs import box_retrieval as boxret
+from libs import denoising as dn
+from libs import text_retrieval as txt
 
 
 def sort_rects_lrtb(rect_list):
@@ -23,7 +26,7 @@ def sort_rects_lrtb(rect_list):
     return sorted(rect_list, key = lambda x: (x[0], x[1]))
 
 
-def main(queryset_name, descriptor, measure, k, similarity, background, bbox):
+def main(queryset_name, descriptor, measure, k, similarity, background, bbox, ocr):
     '''
     Main function
     '''
@@ -51,26 +54,86 @@ def main(queryset_name, descriptor, measure, k, similarity, background, bbox):
             quit()
 
         paintings = []
+
         if background:
             # masks = bg.method_canny(img)
-            _, masks = bg.hsv_thresh_method(img, 2)
-            # masks = bg.method_canny_multiple_paintings(img.copy())[1]
+            # _, masks = bg.hsv_thresh_method(img.copy(), 2)
+            masks = bg.method_canny_multiple_paintings(img.copy())[1]
 
             masks = sort_rects_lrtb(masks)
             for mask in masks:
+                if abs(mask[1] - mask[3]) < 50: # wrong crop
+                    continue
                 v1 = mask[:2]
                 v2 = mask[2:]
                 paintings.append(img[v1[1]:v2[1], v1[0]:v2[0]])
         else:
             paintings = [img]
+        
+        # print(i, len(paintings))
+
+        # for i, p in enumerate(paintings):
+        #     cv2.imshow('crop' + str(i), p)
+
+        # cv2.waitKey(0)
+        # cv2.destroyAllWindows()
 
         if bbox:
-            box_masks = [(1 - boxret.filled_boxes(painting.copy())[1]) \
-                for painting in paintings]
+            box_masks = []
+
+            for painting in paintings:
+                grad_method = boxret.get_boxes(painting.copy())
+                if grad_method is None:
+                    print('grad method failed')
+                    sat_method = boxret.filled_boxes(painting.copy())[1]
+                    box_masks.append(1- sat_method)
+                else:
+                    box_masks.append(1- grad_method)
+            # box_masks = [(1 - boxret.get_boxes(painting.copy())) if boxret.get_boxes(painting.copy()) is not None else (1 - boxret.filled_boxes(painting.copy())[1]) \
+                # for painting in paintings]
+
+            text_list = []
+            # OCR
+            for bb, p in zip(box_masks, paintings):
+                mask = 1 - bb
+
+                # cv2.imshow('ocr', cv2.resize(p, (500, 500*p.shape[0]//p.shape[1])))
+                # cv2.imshow('Mask', cv2.resize(255*mask, (500, 500*p.shape[0]//p.shape[1])))
+
+                a = np.where(mask > 0)
+                pts = [(i, j) for i,j in zip(*a)]
+
+                if len(pts) == 0 or not ocr:
+                    text_list.append('')
+                    continue
+                # print(pts[0], pts[-1])
+
+                masked_img = p[pts[0][0]:pts[-1][0], pts[0][1]:pts[-1][1]]
+
+                # masked_img = cv2.bitwise_and(p, p, mask=mask)
+                # masked_img = p[bb > 0]
+                text = txt.get_text(masked_img.copy())
+                # print(text)
+                # cv2.waitKey(0)
+                text_list.append(text)
+            # author = ocr(im, box_masks[i])
+
+            # Denoise image
+            paintings = [dn.denoise_img(painting) for painting in paintings]
+            #  = [p['color'] for p in denoised_imgs]
 
             # get a dict with the descriptors for the n pictures per painting
-            qs_descript_list.append([desc.get_descriptors(paintings[i].copy(), box_masks[i]) \
-             for i in range(len(paintings))])
+            temp_list = []
+            for i in range(len(paintings)):
+                d = desc.get_descriptors(paintings[i].copy(), box_masks[i])
+                d['author'] = d['title'] = text_list[i]
+                temp_list.append(d)
+                # print(d['author'])
+                # cv2.waitKey(0)
+            qs_descript_list.append(temp_list)
+
+            # qs_descript_list.append([desc.get_descriptors(paintings[i].copy(), box_masks[i]) \
+            #  for i in range(len(paintings))])
 
             # Save text boxes in a pkl for evaluation
             temp_list = []
@@ -96,10 +159,11 @@ def main(queryset_name, descriptor, measure, k, similarity, background, bbox):
 
     predicted = []
     for query_descript_dic in qs_descript_list:
-        predicted.append([cbir.get_histogram_top_k_similar(p[descriptor], \
-                        db_descript_list, descriptor, measure, similarity, k) \
+        print(len(predicted))
+        predicted.append([cbir.get_top_k_multi(p, \
+                        db_descript_list, [descriptor], [1], measure, similarity, k, {'author': 0.3}) \
                         for p in query_descript_dic])
-
+    # {'author': 0.3}
     # For generating submission pkl
     # with open('../dlcv06/m1-results/week2/QST2/method2/result.pkl', 'wb') as f:
     #     pkl.dump(predicted, f)
@@ -113,7 +177,12 @@ def main(queryset_name, descriptor, measure, k, similarity, background, bbox):
 
     # Extending lists to get performance for list of lists of lists
     new_predicted = []
-    for images in predicted:
+    for images, actual_im in zip(predicted, actual):
+        if len(images) > len(actual_im):
+            images = images[:len(actual_im)]
+        elif len(images) < len(actual_im):
+            for i in range(len(actual_im) - len(images)):
+                images.append([-1])
         for paintings in images:
             new_predicted.append(paintings)
 
@@ -127,10 +196,10 @@ def main(queryset_name, descriptor, measure, k, similarity, background, bbox):
 
     map_k = metrics.kdd_mapk(new_actual,new_predicted,k)
 
-    # print('actual:', actual)
-    print('new actual:', new_actual)
-    # print('predicted:', predicted)
-    print('new predicted:', new_predicted)
+    print('actual:', actual)
+    # print('new actual:', new_actual)
+    print('predicted:', predicted)
+    # print('new predicted:', new_predicted)
     print('Result =', map_k)
 
     with open('results.csv', 'w', newline='') as file:
@@ -153,7 +222,8 @@ if __name__ == "__main__":
     parser.add_argument('-b', '--background', required=False, default=False, action='store_true')
     parser.add_argument('-s', '--similarity', required=False, default=False, action='store_true')
     parser.add_argument('-bb', '--bbox', required=False, default=False, action='store_true')
+    parser.add_argument('-o', '--ocr', required=False, default=False, action='store_true')
 
     args = parser.parse_args()
 
-    main(args.q, args.d, args.m, args.k, args.similarity, args.background, args.bbox)
+    main(args.q, args.d, args.m, args.k, args.similarity, args.background, args.bbox, args.ocr)

@@ -3,7 +3,7 @@ import glob
 import pickle as pkl
 import numpy as np
 import os, os.path
-import descriptors
+from libs import descriptors
 from matplotlib import pyplot as plt
 
 def test():
@@ -66,18 +66,20 @@ def check_box_fill(im, x, y, w, h):
 
 def get_boxes(im):
 
+    original_size = im.shape[:2]
+
+    im = cv.resize(im, (500, 500*im.shape[0]//im.shape[1]))
     him, wim = im.shape[:2]
 
-    cv.imshow('original:',im)
-    cv.waitKey(0)
-    img=im
+    # cv.imshow('painting:',im)
+    # cv.waitKey(0)
+    
     im = linear_stretch( im, descriptors.get_bgr_concat_hist(im))
 
     #gradients
     kernel = np.ones((7,7),np.float32)/49
     im = cv.filter2D(im,-1,kernel)
     # cv.imshow('blur:', im)
-    # cv.waitKey(0)
 
     laplacian = cv.Laplacian(im,cv.CV_64F)
     extrem = (abs(np.min(laplacian))+abs(np.max(laplacian)))//2
@@ -89,8 +91,6 @@ def get_boxes(im):
     
     mask[int(him*0.05):-int(him*0.05),int(wim*0.2):-int(wim*0.2)] = lap[int(him*0.05):-int(him*0.05),int(wim*0.2):-int(wim*0.2)]
     # cv.imshow('corte:',mask)
-    # cv.waitKey(0)
-    # cv.waitKey(0)
 
     kernel = cv.getStructuringElement(cv.MORPH_RECT, (wim//5,4))
     mask = cv.morphologyEx(mask, cv.MORPH_CLOSE, kernel)
@@ -98,9 +98,9 @@ def get_boxes(im):
     mask = cv.morphologyEx(mask, cv.MORPH_CLOSE, kernel)
     kernel = cv.getStructuringElement(cv.MORPH_RECT, (wim//10,1))
     mask = cv.morphologyEx(mask, cv.MORPH_OPEN, kernel)
-    cv.imshow('morf:',mask)
-    cv.waitKey(0)
+    # cv.imshow('morf:',mask)
 
+    
     contours = cv.findContours(mask, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_NONE)[0]
     mask = cv.cvtColor(mask, cv.COLOR_GRAY2BGR)
     draw = mask.copy()
@@ -108,7 +108,7 @@ def get_boxes(im):
     for blob in contours:
         x, y, w, h = cv.boundingRect(blob)
         fill = check_box_fill(mask[:,:,0], x, y, w, h)[2]
-        if h>5 and w*h<wim*him*0.35 and h/w<0.8 and fill > 0.5:
+        if h>5 and w*h<wim*him*0.35 and h/w<0.9 and fill > 0.35:
             cx = x+w//2
             cy = y+h//2
             if wim*0.2>abs(wim//2-cx) and him*0.17<abs(him//2-cy):
@@ -116,6 +116,9 @@ def get_boxes(im):
                 cv.rectangle(draw, (x,y), (x+w,y+h), (0,0,255))
     cv.imshow('rectangles hold filters:',draw)
     cv.waitKey(0)
+
+    # cv.imshow('rects',draw)
+    # cv.waitKey(0)
 
     rectangles = sorted(rectangles, key=lambda x: x[1])
     aux = []
@@ -142,9 +145,11 @@ def get_boxes(im):
     cv.imshow('post join:',draw)
     cv.waitKey(0)
 
-    # cv.imshow('rect:',draw)
 
-    the_rect = aux[0]
+    if len(aux) < 1:
+        return None
+
+    the_rect = aux[0] 
     if len(aux)>1:
         the_rect = choose_best_rectangle(aux, laplacian)
     
@@ -155,12 +160,13 @@ def get_boxes(im):
     kernel = cv.getStructuringElement(cv.MORPH_RECT, (wim//25,10))
     box_mask = cv.morphologyEx(box_mask, cv.MORPH_DILATE, kernel, iterations=2)
 
-    cv.imshow('result:',img[:,:,1]*box_mask)
-    cv.waitKey(0)
+    # cv.imshow('result:',im[:,:,1]*box_mask)
+    box_mask = cv.resize(box_mask, original_size[::-1])
+
+    # cv.waitKey(0)
     return box_mask
 
 def choose_best_rectangle(rects,laplacian):
-    #TODO:
     the_rect = None
     min_sumita = np.inf
     for rect in rects:
@@ -178,7 +184,6 @@ def choose_best_rectangle(rects,laplacian):
         # print(vector.shape)
 
         # cv.imshow('a ver:', again*255)
-        # cv.waitKey(0)
         # plt.plot(again[again.shape[0]//2, :])
         # cv.waitKey(1)
         # plt.show()
@@ -360,14 +365,14 @@ def verify_boxes(location, correspondance):
     return iou
 
 
-# reading images from queryset
-path = ['..', '..','datasets', 'qsd1_w3']
-qs_number = len([name for name in os.listdir(os.path.join(*path)) \
-    if '.jpg' in name])
+# # reading images from queryset
+# path = ['..', '..','datasets', 'qsd1_w3']
+# qs_number = len([name for name in os.listdir(os.path.join(*path)) \
+#     if '.jpg' in name])
 
 
-for i in range(qs_number):
-    path = ['..', '..','datasets', 'qsd1_w3', '{:05d}'.format(i)+'.jpg']
-    img= cv.imread(os.path.join(*path), cv.IMREAD_COLOR)
-    img = cv.resize(img, (500, 500*img.shape[0]//img.shape[1]))
-    get_boxes(img)
+# for i in range(qs_number):
+#     path = ['..', '..','datasets', 'qsd1_w3', '{:05d}'.format(i)+'.jpg']
+#     img= cv.imread(os.path.join(*path), cv.IMREAD_COLOR)
+#     img = cv.resize(img, (500, 500*img.shape[0]//img.shape[1]))
+#     get_boxes(img)
