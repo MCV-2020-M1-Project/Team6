@@ -93,6 +93,7 @@ def main(queryset_name, descriptor, measure, k, similarity, background, bbox):
                 # for painting in paintings]
 
             text_list = []
+            # txt_file = open('ocr_results/{:05d}.txt'.format(i), 'w')
             # OCR
             for bb, p in zip(box_masks, paintings):
                 mask = 1 - bb
@@ -104,6 +105,8 @@ def main(queryset_name, descriptor, measure, k, similarity, background, bbox):
                 pts = [(i, j) for i,j in zip(*a)]
 
                 if len(pts) == 0:
+                    # txt_file.write('')
+                    # txt_file.write('\n')
                     text_list.append('')
                     continue
                 # print(pts[0], pts[-1])
@@ -115,12 +118,13 @@ def main(queryset_name, descriptor, measure, k, similarity, background, bbox):
                 text = txt.get_text(masked_img.copy())
                 # print(text)
                 # cv2.waitKey(0)
+                # txt_file.write(text)
+                # txt_file.write('\n')
                 text_list.append(text)
             # author = ocr(im, box_masks[i])
-
+            # txt_file.close()
             # Denoise image
             paintings = [dn.denoise_img(painting) for painting in paintings]
-            #  = [p['color'] for p in denoised_imgs]
 
             # get a dict with the descriptors for the n pictures per painting
             temp_list = []
@@ -160,12 +164,15 @@ def main(queryset_name, descriptor, measure, k, similarity, background, bbox):
     predicted = []
     for query_descript_dic in qs_descript_list:
         predicted.append([cbir.get_top_k_multi(p, \
-                        db_descript_list, [descriptor, 'hsv_multiresolution'], [0.5, 0.5], measure, similarity, k, {'author': 0.3}) \
+                        db_descript_list, ['hog', 'hsv_multiresolution', 'DCT-16-64'], [0, 1, 0], measure, similarity, k, {'author': 0.3}) \
                         for p in query_descript_dic])
 
-    # For generating submission pkl
-    # with open('../dlcv06/m1-results/week2/QST2/method2/result.pkl', 'wb') as f:
+    # print(predicted)
+    # # For generating submission pkl
+    # with open('../dlcv06/m1-results/week3/QST1/method1/result.pkl', 'wb') as f:
+    #     print('Pickles...')
     #     pkl.dump(predicted, f)
+    #     print('...gonna pick')
     # quit()
 
     #Read groundtruth from .pkl
@@ -216,7 +223,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument('-q', required=True, type=str, help='query set')
     parser.add_argument('-d', required=False, default='hs_multi_hist', type=str)
-    parser.add_argument('-m', required=False, default='x2', type=str)
+    parser.add_argument('-m', required=False, default='l1', type=str)
     parser.add_argument('-k', required=False, default=5, type=int)
     parser.add_argument('-b', '--background', required=False, default=False, action='store_true')
     parser.add_argument('-s', '--similarity', required=False, default=False, action='store_true')

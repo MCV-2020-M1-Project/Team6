@@ -47,7 +47,11 @@ def get_db_top_k(query_descriptor, db_descriptor_list, descriptor_method_list, w
             distances = dists.get_all_measures(query_descriptor[d], db_point[d])
             distances_dict[img_idx] += w * abs(distances[measure])
            
-    return sorted(distances_dict, key=distances_dict.get, reverse=similarity)[:k]
+    result = sorted(distances_dict, key=distances_dict.get, reverse=similarity)[:k]
+
+    if len(result) < k:
+        result += [0]*(k - len(result))
+    return result
 
 
 def main(img_name, descriptor, measure, k, background, similarity):

@@ -23,7 +23,7 @@ def get_text(im):
     # abcdefgijklmnopqrstuvwxyzñç
     text = pytesseract.image_to_string(gray)#, config=custom_config)
 
-    whitelist = set([c for c in 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyzñÑçÇ/'])
+    whitelist = set([c for c in "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyzñÑçÇ/-'"])
     new_text = ''
     for c in text.strip():
         if c in whitelist or c == ' ':
