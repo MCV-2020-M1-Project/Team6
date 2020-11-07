@@ -104,13 +104,7 @@ def main(queryset_name, descriptor, measure, k, similarity, background, bbox, oc
                 a = np.where(mask > 0)
                 pts = [(i, j) for i,j in zip(*a)]
 
-<<<<<<< HEAD
-                if len(pts) == 0:
-                    # txt_file.write('')
-                    # txt_file.write('\n')
-=======
                 if len(pts) == 0 or not ocr:
->>>>>>> 15021b562a9775ee85be57d7f7985868ac629cbf
                     text_list.append('')
                     continue
                 # print(pts[0], pts[-1])
@@ -169,7 +163,6 @@ def main(queryset_name, descriptor, measure, k, similarity, background, bbox, oc
     for query_descript_dic in qs_descript_list:
         print(len(predicted))
         predicted.append([cbir.get_top_k_multi(p, \
-<<<<<<< HEAD
                         db_descript_list, ['hog', 'hsv_multiresolution', 'DCT-16-64'], [0, 1, 0], measure, similarity, k, {'author': 0.3}) \
                         for p in query_descript_dic])
 
@@ -177,13 +170,6 @@ def main(queryset_name, descriptor, measure, k, similarity, background, bbox, oc
     # # For generating submission pkl
     # with open('../dlcv06/m1-results/week3/QST1/method1/result.pkl', 'wb') as f:
     #     print('Pickles...')
-=======
-                        db_descript_list, [descriptor], [1], measure, similarity, k, {'author': 0.3}) \
-                        for p in query_descript_dic])
-    # {'author': 0.3}
-    # For generating submission pkl
-    # with open('../dlcv06/m1-results/week2/QST2/method2/result.pkl', 'wb') as f:
->>>>>>> 15021b562a9775ee85be57d7f7985868ac629cbf
     #     pkl.dump(predicted, f)
     #     print('...gonna pick')
     # quit()
