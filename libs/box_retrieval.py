@@ -68,26 +68,29 @@ def get_boxes(im):
 
     him, wim = im.shape[:2]
 
-    cv.imshow('testingb:',im)
-    # cv.waitKey(0)
+    cv.imshow('original:',im)
+    cv.waitKey(0)
     img=im
     im = linear_stretch( im, descriptors.get_bgr_concat_hist(im))
 
     #gradients
     kernel = np.ones((7,7),np.float32)/49
     im = cv.filter2D(im,-1,kernel)
-    #cv.imshow('blur:', im)
+    # cv.imshow('blur:', im)
+    # cv.waitKey(0)
 
     laplacian = cv.Laplacian(im,cv.CV_64F)
     extrem = (abs(np.min(laplacian))+abs(np.max(laplacian)))//2
     tol = extrem*0.35
 
     lap = 255 * np.uint8(abs(laplacian[:, :, 0])>tol) # * np.uint8(abs(laplacian[:, :, 1])>tol) * np.uint8(abs(laplacian[:, :,2])>tol)
-    #cv.imshow('lap:',lap)
+    # cv.imshow('lap:',lap)
     mask = np.zeros_like(lap)
     
-    #cv.imshow('corte:',corte)
     mask[int(him*0.05):-int(him*0.05),int(wim*0.2):-int(wim*0.2)] = lap[int(him*0.05):-int(him*0.05),int(wim*0.2):-int(wim*0.2)]
+    # cv.imshow('corte:',mask)
+    # cv.waitKey(0)
+    # cv.waitKey(0)
 
     kernel = cv.getStructuringElement(cv.MORPH_RECT, (wim//5,4))
     mask = cv.morphologyEx(mask, cv.MORPH_CLOSE, kernel)
@@ -95,8 +98,9 @@ def get_boxes(im):
     mask = cv.morphologyEx(mask, cv.MORPH_CLOSE, kernel)
     kernel = cv.getStructuringElement(cv.MORPH_RECT, (wim//10,1))
     mask = cv.morphologyEx(mask, cv.MORPH_OPEN, kernel)
-    #cv.imshow('morf:',mask)
-    
+    cv.imshow('morf:',mask)
+    cv.waitKey(0)
+
     contours = cv.findContours(mask, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_NONE)[0]
     mask = cv.cvtColor(mask, cv.COLOR_GRAY2BGR)
     draw = mask.copy()
@@ -110,6 +114,8 @@ def get_boxes(im):
             if wim*0.2>abs(wim//2-cx) and him*0.17<abs(him//2-cy):
                 rectangles.append((x,y,w,h))
                 cv.rectangle(draw, (x,y), (x+w,y+h), (0,0,255))
+    cv.imshow('rectangles hold filters:',draw)
+    cv.waitKey(0)
 
     rectangles = sorted(rectangles, key=lambda x: x[1])
     aux = []
@@ -133,9 +139,10 @@ def get_boxes(im):
 
     for rect in aux:
         cv.rectangle(draw, (rect[0],rect[1]), (rect[0]+rect[2],rect[3]+rect[1]), (0,255,0))
+    cv.imshow('post join:',draw)
+    cv.waitKey(0)
 
-    cv.imshow('rect:',draw)
-
+    # cv.imshow('rect:',draw)
 
     the_rect = aux[0]
     if len(aux)>1:
@@ -167,12 +174,13 @@ def choose_best_rectangle(rects,laplacian):
         if sumita < min_sumita:
             the_rect = rect
             min_sumita = sumita
-        print(sumita)
-        print(vector.shape)
+        # print(sumita)
+        # print(vector.shape)
 
-        cv.imshow('a ver:', again*255)
-        plt.plot(again[again.shape[0]//2, :])
-        cv.waitKey(1)
+        # cv.imshow('a ver:', again*255)
+        # cv.waitKey(0)
+        # plt.plot(again[again.shape[0]//2, :])
+        # cv.waitKey(1)
         # plt.show()
     return the_rect
 
