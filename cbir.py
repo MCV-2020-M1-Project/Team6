@@ -37,17 +37,24 @@ def get_db_top_k(query_descriptor, db_descriptor_list, descriptor_method_list, w
 
     distances_dict = {}
     for db_point in db_descriptor_list:
-        
         # print('db:', db_point['author'])
         img_idx = db_point['idx']
         # print(img_idx)
         distances_dict[img_idx] = 0
 
         for d, w in zip(descriptor_method_list, weight_list):
-            distances = dists.get_all_measures(query_descriptor[d], db_point[d])
-            distances_dict[img_idx] += w * abs(distances[measure])
-           
-    result = sorted(distances_dict, key=distances_dict.get, reverse=similarity)[:k]
+            if measure == 'bfm' or measure =='flann':
+                distances = dists.get_all_measures(query_descriptor[d], db_point[d],mode='kp')
+                # print('measure=',distances[measure],'db_point=',db_point[d])
+                distances_dict[img_idx] += (distances[measure])
+            else:
+                distances = dists.get_all_measures(query_descriptor[d], db_point[d])
+                distances_dict[img_idx] += w * abs(distances[measure])
+
+    if measure == 'bfm' or measure == 'flann':
+        result =  sorted(distances_dict, key=distances_dict.get, reverse=similarity)[:k]
+    else:
+        result = sorted(distances_dict, key=distances_dict.get, reverse=similarity)[:k]
 
     if len(result) < k:
         result += [0]*(k - len(result))
