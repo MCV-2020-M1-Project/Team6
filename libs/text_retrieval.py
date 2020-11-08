@@ -1,7 +1,7 @@
 import pytesseract
 import cv2
 import numpy as np
-pytesseract.pytesseract.tesseract_cmd = r"C:\Program Files\Tesseract-OCR\tesseract.exe"
+# pytesseract.pytesseract.tesseract_cmd = r"C:\Program Files\Tesseract-OCR\tesseract.exe"
 
 
 # image = cv2.imread(r'../../datasets/qsd1_w3/00003.jpg')
@@ -20,7 +20,8 @@ def get_text(im):
     gray = cv2.threshold(gray, 0, 255, cv2.THRESH_BINARY | cv2.THRESH_OTSU)[1]
     # cv2.imshow('tresh',gray)
     # cv2.imshow('img',im)
-    cv2.waitKey()
+    # cv2.waitKey()
+    # print('-'*20)
     custom_config = '-c tessedit_char_whitelist=ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyzñÑçÇ -c tessedit_char_blacklist=@ --oem 3'
     # abcdefgijklmnopqrstuvwxyzñç
     text = pytesseract.image_to_string(gray)#, config=custom_config)
@@ -35,6 +36,7 @@ def get_text(im):
     # print(text)
     # print(len(text.strip()))
     # print(new_text)
+    # print('-'*20)
     # print(len(new_text))
     # cv2.imshow('gray',cv2.resize(gray, (500, 500*gray.shape[0]//gray.shape[1])))
     # cv2.waitKey()

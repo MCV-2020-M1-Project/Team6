@@ -26,7 +26,7 @@ def sort_rects_lrtb(rect_list):
     return sorted(rect_list, key = lambda x: (x[0], x[1]))
 
 
-def main(queryset_name, descriptor, measure, k, similarity, background, bbox, ocr):
+def main(queryset_name, descriptor, measure, k, similarity, background, bbox, ocr, desc_check):
     '''
     Main function
     '''
@@ -47,6 +47,12 @@ def main(queryset_name, descriptor, measure, k, similarity, background, bbox, oc
     bbox_list = []
 
     for i in range(qs_number):
+
+        # # end ignore -1
+        # if i in {0, 2, 3, 4, 9, 12, 14, 18, 20, 21, 27}: 
+        #     continue
+        # # end ignore -1
+
         path = ['..','datasets', queryset_name, '{:05d}'.format(i)+'.jpg']
         img = cv2.imread(os.path.join(*path), cv2.IMREAD_COLOR)
         if img is None:
@@ -78,6 +84,8 @@ def main(queryset_name, descriptor, measure, k, similarity, background, bbox, oc
         # cv2.waitKey(0)
         # cv2.destroyAllWindows()
 
+        # Keypoint stuff
+
         if bbox:
             box_masks = []
 
@@ -93,7 +101,7 @@ def main(queryset_name, descriptor, measure, k, similarity, background, bbox, oc
                 # for painting in paintings]
 
             text_list = []
-            # txt_file = open('ocr_results/{:05d}.txt'.format(i), 'w')
+            txt_file = open('ocr_results/{:05d}.txt'.format(i), 'w')
             # OCR
             for bb, p in zip(box_masks, paintings):
                 mask = 1 - bb
@@ -106,6 +114,7 @@ def main(queryset_name, descriptor, measure, k, similarity, background, bbox, oc
 
                 if len(pts) == 0 or not ocr:
                     text_list.append('')
+                    txt_file.write('\n')
                     continue
                 # print(pts[0], pts[-1])
 
@@ -116,18 +125,18 @@ def main(queryset_name, descriptor, measure, k, similarity, background, bbox, oc
                 text = txt.get_text(masked_img.copy())
                 # print(text)
                 # cv2.waitKey(0)
-                # txt_file.write(text)
-                # txt_file.write('\n')
+                txt_file.write(text)
+                txt_file.write('\n')
                 text_list.append(text)
             # author = ocr(im, box_masks[i])
-            # txt_file.close()
+            txt_file.close()
             # Denoise image
             paintings = [dn.denoise_img(painting) for painting in paintings]
 
             # get a dict with the descriptors for the n pictures per painting
             temp_list = []
             for i in range(len(paintings)):
-                d = desc.get_descriptors(paintings[i].copy(), box_masks[i])
+                d = desc.get_descriptors(paintings[i].copy(), None) # box_masks[i]) #TODO: Trying not giving masks, as boxes are transparent
                 d['author'] = d['title'] = text_list[i]
                 temp_list.append(d)
                 # print(d['author'])
@@ -161,24 +170,33 @@ def main(queryset_name, descriptor, measure, k, similarity, background, bbox, oc
 
     predicted = []
     for query_descript_dic in qs_descript_list:
-        print(len(predicted))
         predicted.append([cbir.get_top_k_multi(p, \
-                        db_descript_list, ['hog', 'hsv_multiresolution', 'DCT-16-64'], [0, 1, 0], measure, similarity, k, {'author': 0.3}) \
+                        db_descript_list,  ['hog', 'hsv_multiresolution'], [0.5, 0.5], \
+                        measure, similarity, k, {'author': 0.3}, desc_check=desc_check) \
                         for p in query_descript_dic])
-
+    # ['hog', 'hsv_multiresolution', 'DCT-16-64'], [0.5, 0.5, 0],
     # print(predicted)
-    # # For generating submission pkl
-    # with open('../dlcv06/m1-results/week3/QST1/method1/result.pkl', 'wb') as f:
-    #     print('Pickles...')
-    #     pkl.dump(predicted, f)
-    #     print('...gonna pick')
-    # quit()
+
+    # For generating submission pkl
+    with open('../dlcv06/m1-results/week4/QST1/method1/result.pkl', 'wb') as f:
+        print('Pickles...')
+        pkl.dump(predicted, f)
+        print('...gonna pick')
+    quit()
 
     #Read groundtruth from .pkl
     actual = [] #just a list of all images from the query folder - not ordered
     path = ['..','datasets', queryset_name, 'gt_corresps.pkl']
     with open(os.path.join(*path), 'rb') as gtfile:
         actual = pkl.load(gtfile)
+
+    # # ignore -1
+    # new_actual = []
+    # for c in actual:
+    #     if c[0] != -1:
+    #         new_actual.append(c)
+    # actual = new_actual
+    # # end ignore -1
 
     # Extending lists to get performance for list of lists of lists
     new_predicted = []
@@ -187,7 +205,7 @@ def main(queryset_name, descriptor, measure, k, similarity, background, bbox, oc
             images = images[:len(actual_im)]
         elif len(images) < len(actual_im):
             for i in range(len(actual_im) - len(images)):
-                images.append([-1])
+                images.append([0])
         for paintings in images:
             new_predicted.append(paintings)
 
@@ -216,6 +234,33 @@ def main(queryset_name, descriptor, measure, k, similarity, background, bbox, oc
         for i in range(len(actual)):
             writer.writerow([str(actual[i]), str(predicted[i])])
 
+    print('='*20)
+    print('Actual, predcted')
+    tp = 0
+    fp = 0
+    tn = 0
+    fn = 0
+    for a, p in zip(new_actual, new_predicted):
+        a = a[0]
+        p = p[0]
+        # print(a, p)
+        if p == -1: # positive
+            if p == a:
+                tp += 1
+            else:
+                fp += 1
+        else: #negative
+            if a == -1:
+                fn += 1
+            else:
+                tn += 1
+    
+    precision = tp / (tp + fp)
+    recall = tp / (tp + fn)
+    f1 = 2*precision*recall/(precision + recall)
+
+    print(f'TP: {tp}, FP: {fp}, TN: {tn}, FN: {fn}')
+    print(f'Precision: {precision}\nRecall: {recall}\n F1 {f1}')
 
 if __name__ == "__main__":
 
@@ -228,7 +273,8 @@ if __name__ == "__main__":
     parser.add_argument('-s', '--similarity', required=False, default=False, action='store_true')
     parser.add_argument('-bb', '--bbox', required=False, default=False, action='store_true')
     parser.add_argument('-o', '--ocr', required=False, default=False, action='store_true')
+    parser.add_argument('-dc', '--desc-check', required=False, default=False, action='store_true')
 
     args = parser.parse_args()
 
-    main(args.q, args.d, args.m, args.k, args.similarity, args.background, args.bbox, args.ocr)
+    main(args.q, args.d, args.m, args.k, args.similarity, args.background, args.bbox, args.ocr, args.desc_check)

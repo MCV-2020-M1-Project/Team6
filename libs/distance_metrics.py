@@ -23,20 +23,20 @@ def get_bf_matching(des1, des2):
     both returning number of matches
     """
     if des2 is None: return 0
-    try:
-        bf = cv2.BFMatcher()
-        matches = bf.knnMatch(des1, des2, k=2)
-        # Apply ratio test
-        good_matches = []
-        for m, n in matches:
-            if m.distance < 0.6 * n.distance:
-                good_matches.append([m])
-    except cv2.error():
-        bf = cv2.BFMatcher(cv2.NORM_HAMMING, crossCheck=True)
-        # Match descriptors.
-        matches = bf.match(des1, des2)
-        # Sort them in the order of their distance.
-        good_matches = sorted(matches, key=lambda x: x.distance)
+    # try:
+    #     bf = cv2.BFMatcher()
+    #     matches = bf.knnMatch(des1, des2, k=2)
+    #     # Apply ratio test
+    #     good_matches = []
+    #     for m, n in matches:
+    #         if m.distance < 0.6 * n.distance:
+    #             good_matches.append([m])
+    # except cv2.error(): # TODO: Why could this fail?
+    bf = cv2.BFMatcher(cv2.NORM_HAMMING, crossCheck=True)
+    # Match descriptors.
+    matches = bf.match(des1, des2)
+    # Sort them in the order of their distance.
+    good_matches = sorted(matches, key=lambda x: x.distance)
 
     return len(good_matches)
 
@@ -300,7 +300,7 @@ def get_all_measures(a, b, display=False, mode='color'):
         }
     elif mode == 'kp':
         measures = {
-            # 'bfm': get_bf_matching(a, b),
+            'bfm': get_bf_matching(a, b),
             # 'flann': get_flann_matching(a, b)
         }
 

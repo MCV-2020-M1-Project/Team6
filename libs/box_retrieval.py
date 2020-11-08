@@ -1,10 +1,14 @@
+import os
+import sys
+sys.path.append(os.path.split(__file__)[0])
+
 import cv2 as cv
 import glob
 import pickle as pkl
 import numpy as np
-import os, os.path
-from libs import descriptors
 from matplotlib import pyplot as plt
+
+import descriptors
 
 def test():
     files_img = glob.glob(f'../datasets/qsd1_w2/*.jpg')
@@ -65,6 +69,133 @@ def check_box_fill(im, x, y, w, h):
     return crop_img, count_whites, count_whites / count_all
 
 def get_boxes(im):
+
+    original_size = im.shape[:2]
+
+    im = cv.resize(im, (500, 500*im.shape[0]//im.shape[1]))
+    him, wim = im.shape[:2]
+
+    # cv.imshow('painting:',im)
+    # cv.waitKey(0)
+    
+    im = linear_stretch( im, descriptors.get_bgr_concat_hist(im))
+
+    #gradients
+    kernel = np.ones((7,7),np.float32)/49
+    blur = cv.filter2D(im,-1,kernel)
+
+    laplacian = cv.Laplacian(blur,cv.CV_64F)
+    extrem = (abs(np.min(laplacian))+abs(np.max(laplacian)))//2
+    tol = extrem*0.35
+
+    lap = 255 * np.uint8(abs(laplacian[:, :, 0])>tol) # * np.uint8(abs(laplacian[:, :, 1])>tol) * np.uint8(abs(laplacian[:, :,2])>tol)
+    
+    mask = np.zeros_like(lap)    
+    mask[int(him*0.05):-int(him*0.05),int(wim*0.2):-int(wim*0.2)] = lap[int(him*0.05):-int(him*0.05),int(wim*0.2):-int(wim*0.2)]
+
+    kernel = cv.getStructuringElement(cv.MORPH_RECT, (1,3))
+    mask = cv.morphologyEx(mask, cv.MORPH_OPEN, kernel)
+    kernel = cv.getStructuringElement(cv.MORPH_RECT, (wim//5,4))
+    mask = cv.morphologyEx(mask, cv.MORPH_CLOSE, kernel)
+    kernel = cv.getStructuringElement(cv.MORPH_RECT, (2,6))
+    mask = cv.morphologyEx(mask, cv.MORPH_CLOSE, kernel)
+    kernel = cv.getStructuringElement(cv.MORPH_RECT, (wim//10,1))
+    mask = cv.morphologyEx(mask, cv.MORPH_OPEN, kernel)
+    
+    contours = cv.findContours(mask, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_NONE)[0]
+    mask = cv.cvtColor(mask, cv.COLOR_GRAY2BGR)
+    draw = mask.copy()
+    rectangles=[]
+    for blob in contours:
+        x, y, w, h = cv.boundingRect(blob)
+        fill = check_box_fill(mask[:,:,0], x, y, w, h)[2]
+        if len(contours) == 1:
+            rectangles.append((x,y,w,h))
+            cv.rectangle(draw, (x,y), (x+w,y+h), (0,0,255))
+        elif h>5 and w*h<wim*him*0.35 and h/w<0.9 and fill > 0.35:
+            cx = x+w//2
+            cy = y+h//2
+            if wim*0.2>abs(wim//2-cx) and him*0.12<abs(him//2-cy):
+                rectangles.append((x,y,w,h))
+                cv.rectangle(draw, (x,y), (x+w,y+h), (0,0,255))
+    # cv.imshow('rectangles hold filters:',draw)
+    # cv.waitKey(0)
+
+    # cv.imshow('rects',draw)
+    # cv.waitKey(0)
+
+    rectangles = sorted(rectangles, key=lambda x: x[1])
+    aux = []
+    if len(rectangles) == 1:
+        aux = rectangles
+    else:
+        i = 0
+        while i < len(rectangles)-1:
+            if abs(rectangles[i][1]+rectangles[i][3]-rectangles[i+1][1])<15:
+                y = rectangles[i][1] 
+                x = rectangles[i][0] if rectangles[i][0] < rectangles[i+1][0] else rectangles[i+1][0]
+                h = abs(y - rectangles[i+1][1]-rectangles[i+1][3])
+                w = rectangles[i][2] if rectangles[i][2] > rectangles[i+1][2] else rectangles[i+1][2]
+                aux.append((x,y,w,h))
+                i+=1
+            else:
+                aux.append(rectangles[i])
+            if i+1 == len(rectangles)-1:
+                aux.append(rectangles[i+1])
+            i+=1
+
+    for rect in aux:
+        cv.rectangle(draw, (rect[0],rect[1]), (rect[0]+rect[2],rect[3]+rect[1]), (0,255,0))
+    # cv.imshow('post join:',draw)
+    # cv.waitKey(0)
+
+    if len(aux) < 1:
+        return None
+
+    the_rect = aux[0] 
+    if len(aux)>1:
+        the_rect = choose_best_rectangle(aux, laplacian)
+    
+    #expand_rect(aux[0])
+
+    box_mask = np.zeros_like(mask[:,:,0])
+    box_mask[the_rect[1]:the_rect[1]+the_rect[3], the_rect[0]:the_rect[0]+the_rect[2]] = np.ones((the_rect[3],the_rect[2]), np.uint8)
+    kernel = cv.getStructuringElement(cv.MORPH_RECT, (wim//25,10))
+    box_mask = cv.morphologyEx(box_mask, cv.MORPH_DILATE, kernel, iterations=2)
+
+    # cv.imshow('result:',im[:,:,1]*box_mask)
+    box_mask = cv.resize(box_mask, original_size[::-1])
+
+    return box_mask
+
+def choose_best_rectangle(rects,laplacian):
+    the_rect = None
+    min_sumita = np.inf
+    for rect in rects:
+        again = laplacian[rect[1]:rect[1]+rect[3], rect[0]:rect[0]+rect[2]]
+        vector = again[again.shape[0]//2, :, :].copy()
+        cv.normalize(vector,vector,1,norm_type=cv.NORM_L2)
+
+        vector[:,0] = [vector[i,0]/abs(vector[:,0].min()) if vector[i,0]<0 else vector[i,0]/vector[:,0].max() for i in range(len(vector[:,0]))]
+        vector[:,1] = [vector[i,1]/abs(vector[:,0].min()) if vector[i,1]<0 else vector[i,1]/vector[:,0].max() for i in range(len(vector[:,1]))]
+        vector[:,2] = [vector[i,2]/abs(vector[:,0].min()) if vector[i,2]<0 else vector[i,2]/vector[:,0].max() for i in range(len(vector[:,2]))]
+
+        sumita = np.sum(abs(vector[:,0]-vector[:,1]) + abs(vector[:,0]-vector[:,2]) + abs(vector[:,1]-vector[:,2]))/len(vector)
+        if sumita < min_sumita:
+            the_rect = rect
+            min_sumita = sumita
+        # print(sumita)
+        # print(vector.shape)
+
+        # cv.imshow('a ver:', again*255)
+        # plt.plot(vector)
+        # plt.show()
+        # plt.plot(again[again.shape[0]//2, :])
+        # cv.waitKey(1)
+        # plt.show()
+    return the_rect
+
+def get_boxes_old(im):
 
     original_size = im.shape[:2]
 
@@ -148,7 +279,7 @@ def get_boxes(im):
 
     the_rect = aux[0] 
     if len(aux)>1:
-        the_rect = choose_best_rectangle(aux, laplacian)
+        the_rect = choose_best_rectangle_old(aux, laplacian)
     
     #expand_rect(aux[0])
 
@@ -163,7 +294,7 @@ def get_boxes(im):
     # cv.waitKey(0)
     return box_mask
 
-def choose_best_rectangle(rects,laplacian):
+def choose_best_rectangle_old(rects,laplacian):
     the_rect = None
     min_sumita = np.inf
     for rect in rects:
