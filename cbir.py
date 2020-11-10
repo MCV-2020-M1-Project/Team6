@@ -10,7 +10,11 @@ from libs import distance_metrics as dists
 # from libs import box_retrieval as boxret
 
 
-def get_top_k_multi(query, db_descriptor_list, descriptor_method_list, weights, measure_name, similarity, k, hier_desc_dict=None):
+def get_top_k_multi(query, db_descriptor_list, descriptor_method_list, weights, measure_name, similarity, k, hier_desc_dict=None, desc_check=False):
+
+    if desc_check and not desc.painting_in_db(query, db_descriptor_list, method=1): #TODO: Before or after text???
+        return [-1]
+
     shorter_list = []
     # Filter out by hierarchy
     if hier_desc_dict is not None:
@@ -21,14 +25,10 @@ def get_top_k_multi(query, db_descriptor_list, descriptor_method_list, weights, 
                 if dists.gestalt(query[desc_name], d[desc_name]) <= thresh:
                     shorter_list.append(d)
 
-    if len(shorter_list) == 0:
+    if len(shorter_list) < 1:
         shorter_list = db_descriptor_list
-    # print('QUERY:', query['author'])
-    # print('len db after', len(shorter_list))
-    # print('DB')
-    # for d in shorter_list:
-    #     print(d.keys())
-    
+
+
     # get top k
     return get_db_top_k(query, shorter_list, descriptor_method_list, weights, measure_name, similarity, k)
 
@@ -37,7 +37,6 @@ def get_db_top_k(query_descriptor, db_descriptor_list, descriptor_method_list, w
 
     distances_dict = {}
     for db_point in db_descriptor_list:
-        
         # print('db:', db_point['author'])
         img_idx = db_point['idx']
         # print(img_idx)
@@ -52,10 +51,13 @@ def get_db_top_k(query_descriptor, db_descriptor_list, descriptor_method_list, w
                 distances = dists.get_all_measures(query_descriptor[d], db_point[d])
                 distances_dict[img_idx] += w * abs(distances[measure])
 
-    if measure == 'bfm' or measure == 'flann':
-        return sorted(distances_dict, key=distances_dict.get, reverse=similarity)[:k]
-    else:
-        return sorted(distances_dict, key=distances_dict.get, reverse=similarity)[:k]
+    result = sorted(distances_dict, key=distances_dict.get, reverse=similarity)[:k]
+
+    if len(result) < k:
+        result += [0]*(k - len(result))
+
+    return result
+
 
 def main(img_name, descriptor, measure, k, background, similarity):
 

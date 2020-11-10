@@ -1,3 +1,4 @@
+import time
 import cv2
 import numpy as np
 import matplotlib.pyplot as plt
@@ -7,7 +8,11 @@ from libs import box_retrieval,background_removal,distance_metrics
 import retrieval_evaluation as re
 from skimage.feature import daisy
 
-# gray= cv2.cvtColor(img,cv2.COLOR_BGR2GRAY)
+# img = cv2.imread('../datasets/qsd1_w4/00000.jpg')
+# if img is None:
+#     print('Error reading image')
+#     quit()
+# gray= cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
 # sift = cv2.SIFT_create()
 # kp = sift.detect(gray,None)
 # kp, des = sift.compute(gray,kp)
@@ -48,20 +53,27 @@ def SIFT(img1,img2):
     # find the keypoints and descriptors with SIFT
     kp1, des1 = sift.detectAndCompute(img1, None)
     kp2, des2 = sift.detectAndCompute(img2, None)
+
+    if len(kp1) < 2 or len(kp2) < 2:
+        return 0
     # BFMatcher with default params
-    print(type(des2[0]))
-    print('sift des2=',des2[0])
+    # print(type(des2[0]))
+    # print('sift des2=',des2[0])
     bf = cv2.BFMatcher()
     matches = bf.knnMatch(des1,des2,k=2)
     # Apply ratio test
     good = []
     for m,n in matches:
-        if m.distance < 0.2*n.distance:
+        if m.distance < 0.3*n.distance:
             good.append([m])
     # cv.drawMatchesKnn expects list of lists as matches.
-    print(len(good))
-    img3 = cv2.drawMatchesKnn(img1,kp1,img2,kp2,good,None,flags=cv2.DrawMatchesFlags_NOT_DRAW_SINGLE_POINTS)
-    plt.imshow(img3),plt.show()
+    # # print('Num matches:',  len(good))
+    # # img3 = cv2.drawMatchesKnn(img1,kp1,img2,kp2,good,None,flags=cv2.DrawMatchesFlags_NOT_DRAW_SINGLE_POINTS)
+    # # plt.imshow(img3),plt.show()
+    # matches = bf.match(des1, des2)
+    # matches = sorted(matches, key=lambda x: x.distance)
+    # good = [m for m in matches if m.distance < 55]
+    return len(good)
 
 def ORB(img1,img2):
     # Initiate ORB detector
@@ -69,16 +81,35 @@ def ORB(img1,img2):
     # find the keypoints and descriptors with ORB
     kp1, des1 = orb.detectAndCompute(img1, None)
     kp2, des2 = orb.detectAndCompute(img2, None)
-    # create BFMatcher object
-    bf = cv2.BFMatcher(cv2.NORM_HAMMING, crossCheck=True)
-    # Match descriptors.
-    matches = bf.match(des1, des2)
-    # Sort them in the order of their distance.
-    matches = sorted(matches, key=lambda x: x.distance)
-    # Draw first 10 matches.
-    print(len(matches))
-    img3 = cv2.drawMatches(img1, kp1, img2, kp2, matches[:10], None, flags=cv2.DrawMatchesFlags_NOT_DRAW_SINGLE_POINTS)
-    plt.imshow(img3), plt.show()
+    
+    print(len(kp1))
+    print(kp1[0].pt, kp1[0].angle)
+    good = []
+    if True: # method 1 for getting matches
+        # create BFMatcher object
+        bf = cv2.BFMatcher(cv2.NORM_HAMMING, crossCheck=True)
+        # Match descriptors.
+        matches = bf.match(des1, des2)
+        # Sort them in the order of their distance.
+        matches = sorted(matches, key=lambda x: x.distance)
+        # Draw first 10 matches.
+        # print(len(matches))
+        # img3 = cv2.drawMatches(img1, kp1, img2, kp2, matches[:10], None, flags=cv2.DrawMatchesFlags_NOT_DRAW_SINGLE_POINTS)
+        # plt.imshow(img3), plt.show()
+        good = [m for m in matches if m.distance < 21]
+        # cv.drawMatchesKnn expects list of lists as matches.
+        # print('Num matches:',  len(good))
+        # img3 = cv2.drawMatchesKnn(img1,kp1,img2,kp2,good,None,flags=cv2.DrawMatchesFlags_NOT_DRAW_SINGLE_POINTS)
+        # plt.imshow(img3),plt.show()
+    else:
+        bf = cv2.BFMatcher()
+        matches = bf.knnMatch(des1,des2,k=2)
+        for m,n in matches:
+            if m.distance < 0.6*n.distance:
+                good.append([m])
+
+    return len(good)
+
 
 def load_index():
     path = ['..','pkl_data','kp_bd_descriptors.pkl'] #for making the path system independent
@@ -183,10 +214,11 @@ def DAISY(img1, img2):
 
 
 def main():
-    img1 = cv2.imread(r'../../datasets/BBDD/bbdd_00104.jpg')
-    img2 = cv2.imread(r'../../datasets/qsd1_w4/00008.jpg', cv2.IMREAD_COLOR)
-    # img1 = cv2.imread(r'../../datasets/BBDD/bbdd_00250.jpg')
-    # img2 = cv2.imread(r'../../datasets/qsd1_w4/00006.jpg', cv2.IMREAD_COLOR)
+    # img1 = cv2.imread(r'../../datasets/BBDD/bbdd_00104.jpg')
+    # img2 = cv2.imread(r'../../datasets/qsd1_w4/00008.jpg', cv2.IMREAD_COLOR)
+    img1 = cv2.imread(r'../datasets/BBDD/bbdd_00104.jpg')
+    test = 0
+    img2 = cv2.imread('../datasets/qsd1_w4/{:05d}.jpg'.format(test), cv2.IMREAD_COLOR)
     # 250,6
     # ORB(img1,img2)
     # SIFT(img1, img2)
@@ -203,14 +235,26 @@ def main():
         v1 = mask[:2]
         v2 = mask[2:]
         img_no_bg = img2[v1[1]:v2[1], v1[0]:v2[0]]
-
+    # cv2.imshow('im', img_no_bg)
+    # cv2.waitKey(0)
     mask = box_retrieval.get_boxes(img_no_bg)
     # des= DAISY(img_no_bg)
     img1=cv2.resize(img1,(512,512),img1)
     img_no_bg = cv2.resize(img_no_bg, (512, 512), img_no_bg)
 
-    # SIFT(img1,img_no_bg)
-    ORB(img1,img_no_bg)
+
+    print(f'testing for image {test}:')
+    for i in range(287):
+        img1 = cv2.imread('../datasets/BBDD/bbdd_{:05d}.jpg'.format(i))
+        img1=cv2.resize(img1,(512,512),img1)    
+        m = SIFT(img1,img_no_bg)
+        # m = ORB(img1,img_no_bg)
+        if m > 0:
+            print(i, m)
+
+    # ORB(img1,img_no_bg)
+    print('Done')
+    quit()
     viz1,viz2, result = DAISY(img1,img_no_bg)
 
     viz1=cv2.resize(viz1, (512,512),viz1)

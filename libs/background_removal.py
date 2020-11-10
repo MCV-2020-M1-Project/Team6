@@ -1,8 +1,11 @@
-import argparse, os
+import os
+import sys
+sys.path.append(os.path.split(__file__)[0])
 
+import argparse, os
 import cv2 as cv
 import numpy as np
-from evaluation import mask_evaluation
+# from "../evaluation" import mask_evaluation
 import glob
 import pickle as pkl
 

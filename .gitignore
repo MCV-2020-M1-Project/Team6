@@ -7,5 +7,7 @@ __pycache__/
 *.csv
 *.pyc
 
+ocr_results/*
+
 # Ignore development scripts
 test_stuff.py

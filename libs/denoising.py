@@ -1,10 +1,14 @@
 '''
 Library for all related to denoising
 '''
+import os
+import sys
+sys.path.append(os.path.split(__file__)[0])
+
 import numpy as np
 import cv2
 
-from libs import background_removal as br
+import background_removal as br
 # from skimage.metrics import structural_similarity as ssim
 
 
