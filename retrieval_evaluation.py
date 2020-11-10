@@ -178,11 +178,11 @@ def main(queryset_name, descriptor, measure, k, similarity, background, bbox, oc
     # print(predicted)
 
     # For generating submission pkl
-    with open('../dlcv06/m1-results/week4/QST1/method1/result.pkl', 'wb') as f:
-        print('Pickles...')
-        pkl.dump(predicted, f)
-        print('...gonna pick')
-    quit()
+    # with open('../dlcv06/m1-results/week4/QST1/method1/result.pkl', 'wb') as f:
+    #     print('Pickles...')
+    #     pkl.dump(predicted, f)
+    #     print('...gonna pick')
+    # quit()
 
     #Read groundtruth from .pkl
     actual = [] #just a list of all images from the query folder - not ordered
@@ -255,9 +255,9 @@ def main(queryset_name, descriptor, measure, k, similarity, background, bbox, oc
             else:
                 tn += 1
     
-    precision = tp / (tp + fp)
-    recall = tp / (tp + fn)
-    f1 = 2*precision*recall/(precision + recall)
+    precision = tp / (tp + fp + 1e-7)
+    recall = tp / (tp + fn + 1e-7)
+    f1 = 2*precision*recall/(precision + recall + 1e-7)
 
     print(f'TP: {tp}, FP: {fp}, TN: {tn}, FN: {fn}')
     print(f'Precision: {precision}\nRecall: {recall}\n F1 {f1}')
