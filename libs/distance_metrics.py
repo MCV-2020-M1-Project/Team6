@@ -52,7 +52,7 @@ def get_flann_matching(des1, des2):
     try:
         FLANN_INDEX_KDTREE = 1
         index_params = dict(algorithm=FLANN_INDEX_KDTREE, trees=5)
-        search_params = dict(checks=75)  # or pass empty dictionary
+        search_params = dict(checks=50)  # or pass empty dictionary
         flann = cv2.FlannBasedMatcher(index_params, search_params)
         matches = flann.knnMatch(des1, des2, k=2)
         # Apply ratio test
@@ -300,7 +300,7 @@ def get_all_measures(a, b, display=False, mode='color'):
         }
     elif mode == 'kp':
         measures = {
-            # 'bfm': get_bf_matching(a, b),
+            'bfm': get_bf_matching(a, b),
             # 'flann': get_flann_matching(a, b)
         }
 

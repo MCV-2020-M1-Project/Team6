@@ -183,10 +183,10 @@ def DAISY(img1, img2):
 
 
 def main():
-    # img1 = cv2.imread(r'../../datasets/BBDD/bbdd_00104.jpg')
-    # img2 = cv2.imread(r'../../datasets/qsd1_w4/00008.jpg', cv2.IMREAD_COLOR)
     img1 = cv2.imread(r'../../datasets/BBDD/bbdd_00104.jpg')
     img2 = cv2.imread(r'../../datasets/qsd1_w4/00008.jpg', cv2.IMREAD_COLOR)
+    # img1 = cv2.imread(r'../../datasets/BBDD/bbdd_00250.jpg')
+    # img2 = cv2.imread(r'../../datasets/qsd1_w4/00006.jpg', cv2.IMREAD_COLOR)
     # 250,6
     # ORB(img1,img2)
     # SIFT(img1, img2)

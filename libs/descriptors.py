@@ -50,7 +50,7 @@ def get_dct(img, N=100):
     return subset.flatten()
 
 
-def get_lbp(img, radius=2., block_w=8, n_points=None, method='uniform'):
+def get_lbp(img, radius=4, block_w=8, n_points=None, method='uniform'):
     """
     dividing image to shape//block_w blocks
     calculating LBP for each block creating histogram out of LBP output
@@ -86,7 +86,7 @@ def get_lbp(img, radius=2., block_w=8, n_points=None, method='uniform'):
 
 
     full_hist = np.concatenate((list_hist))
-            # result =+ np.uint8(255 * (lbim - lbim.min()) / (lbim.max() - lbim.min()))
+    # result =+ np.uint8(255 * (lbim - lbim.min()) / (lbim.max() - lbim.min()))
 
     return full_hist
 
@@ -444,7 +444,7 @@ def get_descriptors(img, mask=None):
     # descript_dic['bgr_concat_hist'] = get_bgr_concat_hist(img, mask)
     # descript_dic['cielab_concat_hist'] = get_bgr_concat_hist(img, mask)
     # descript_dic['ycrcb_concat_hist'] = get_ycrcb_concat_hist(img, mask)
-    # descript_dic['sift'] = get_sift_desc(img, mask)
+    descript_dic['sift'] = get_sift_desc(img, mask)
     # descript_dic['orb'] = get_orb_desc(img, mask)
     # descript_dic['daisy'] = get_daisy_desc(img)
     descript_dic['lbp'] = get_lbp(img)
