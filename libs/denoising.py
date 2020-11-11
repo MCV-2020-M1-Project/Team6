@@ -18,6 +18,7 @@ def denoise_img(img):
     if no need to denoise: img as is
     else: a dicr with keys 'ocr', 'color'
     '''
+    
     k_size = np.max(img.shape)//300
     k_size = k_size if k_size % 2 else k_size + 1
     k_size = 3 if k_size < 3 else k_size
@@ -30,8 +31,10 @@ def denoise_img(img):
     median_psnr = get_psnr(img, median)
 
     denoised_img = img
-    if gauss_mad > 20: # maybe here call antonis function
-        if gauss_psnr > median_psnr and abs(get_psnr(img, gauss) - get_psnr(img, median)) > 1.5:
+    if gauss_mad > 20: 
+        return cv2.medianBlur(img, 5) # hotfix mimicking other teams. Results actually increased  alittle bit
+
+        if gauss_psnr > median_psnr and abs(get_psnr(img, gauss) - get_psnr(img, median)) > 2:
             denoised_img = gauss
         else:
             denoised_img = median
