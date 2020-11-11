@@ -1,7 +1,6 @@
 import cv2
 import numpy as np
 from skimage.feature import local_binary_pattern, hog,daisy
-import pytesseract
 
 
 def painting_in_db(des1, dataset, mask=None, method=1):
@@ -126,6 +125,7 @@ def get_sift_desc(img, mask=None):
 
 
 def get_orb_desc(img, mask=None):
+    if mask is not None:  mask = cv2.resize(mask,(512,512))    
     img = cv2.resize(img,(512,512))    
     # Initiate ORB detector
     orb = cv2.ORB_create()
@@ -564,10 +564,11 @@ def get_descriptors(img, mask=None):
     # descript_dic['hs_concat_hist_blur'] = get_hs_concat_hist_blur(img, mask)
     # descript_dic['hsv_concat_hist_blur'] = get_hsv_concat_hist_blur(img, mask)
     # descript_dic['h_multi_hist'] = get_h_multi_hist(img, mask)
-    tiles = get_tile_partition(img, 2, 2)
-    mask_tiled = None
-    if mask is not None:
-        mask_tiled = get_tile_partition(mask, 2, 2)
+
+    # tiles = get_tile_partition(img, 2, 2)
+    # mask_tiled = None
+    # if mask is not None:
+    #     mask_tiled = get_tile_partition(mask, 2, 2)
 
     # descript_dic['hs_multi_hist'] = get_hs_multi_hist(tiles, mask_tiled)
     # descript_dic['hs_multiresolution'] = get_hs_multiresolution_hist(img, mask)

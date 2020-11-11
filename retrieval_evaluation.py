@@ -101,7 +101,7 @@ def main(queryset_name, descriptor, measure, k, similarity, background, bbox, oc
                 # for painting in paintings]
 
             text_list = []
-            txt_file = open('ocr_results/{:05d}.txt'.format(i), 'w')
+            # txt_file = open('ocr_results/{:05d}.txt'.format(i), 'w')
             # OCR
             for bb, p in zip(box_masks, paintings):
                 mask = 1 - bb
@@ -114,7 +114,7 @@ def main(queryset_name, descriptor, measure, k, similarity, background, bbox, oc
 
                 if len(pts) == 0 or not ocr:
                     text_list.append('')
-                    txt_file.write('\n')
+                    # txt_file.write('\n')
                     continue
                 # print(pts[0], pts[-1])
 
@@ -125,18 +125,18 @@ def main(queryset_name, descriptor, measure, k, similarity, background, bbox, oc
                 text = txt.get_text(masked_img.copy())
                 # print(text)
                 # cv2.waitKey(0)
-                txt_file.write(text)
-                txt_file.write('\n')
+                # txt_file.write(text)
+                # txt_file.write('\n')
                 text_list.append(text)
             # author = ocr(im, box_masks[i])
-            txt_file.close()
+            # txt_file.close()
             # Denoise image
             paintings = [dn.denoise_img(painting) for painting in paintings]
 
             # get a dict with the descriptors for the n pictures per painting
             temp_list = []
             for i in range(len(paintings)):
-                d = desc.get_descriptors(paintings[i].copy(), None) # box_masks[i]) #TODO: Trying not giving masks, as boxes are transparent
+                d = desc.get_descriptors(paintings[i].copy(), box_masks[i])
                 d['author'] = d['title'] = text_list[i]
                 temp_list.append(d)
                 # print(d['author'])
@@ -165,8 +165,9 @@ def main(queryset_name, descriptor, measure, k, similarity, background, bbox, oc
             qs_descript_list.append([desc.get_descriptors(painting.copy(), None) \
              for painting in paintings])
 
-    with open('text_boxes.pkl', 'wb') as f:
-        pkl.dump(bbox_list, f)
+    # save bounding box pkl
+    # with open('text_boxes.pkl', 'wb') as f:
+    #     pkl.dump(bbox_list, f)
 
     predicted = []
     for query_descript_dic in qs_descript_list:
@@ -174,7 +175,6 @@ def main(queryset_name, descriptor, measure, k, similarity, background, bbox, oc
                         db_descript_list,  ['hog', 'hsv_multiresolution'], [0.5, 0.5], \
                         measure, similarity, k, {'author': 0.3}, desc_check=desc_check) \
                         for p in query_descript_dic])
-    # ['hog', 'hsv_multiresolution', 'DCT-16-64'], [0.5, 0.5, 0],
     # print(predicted)
 
     # For generating submission pkl
@@ -223,8 +223,9 @@ def main(queryset_name, descriptor, measure, k, similarity, background, bbox, oc
     # print('new actual:', new_actual)
     print('predicted:', predicted)
     # print('new predicted:', new_predicted)
-    print('Result =', map_k)
+    print(f'MAP@{k} Result = {map_k}')
 
+    '''
     with open('results.csv', 'w', newline='') as file:
         writer = csv.writer(file)
         writer.writerow(['Queryset: ' + queryset_name, 'Descriptor: ' + descriptor, \
@@ -233,9 +234,10 @@ def main(queryset_name, descriptor, measure, k, similarity, background, bbox, oc
         writer.writerow(['Actual','Predicted'])
         for i in range(len(actual)):
             writer.writerow([str(actual[i]), str(predicted[i])])
+    '''
 
     print('='*20)
-    print('Actual, predcted')
+    # print('Actual, predcted')
     tp = 0
     fp = 0
     tn = 0
