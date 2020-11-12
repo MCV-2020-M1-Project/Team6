@@ -2,7 +2,7 @@ import pickle as pkl
 import numpy as np
 import cv2
 
-
+# Their functions
 def bbox_iou(bboxA, bboxB):
     '''
     compute the intersection over union of two bboxes
@@ -26,7 +26,7 @@ def bbox_iou(bboxA, bboxB):
     iou = interArea / float(bboxAArea + bboxBArea - interArea)
 
     # return the intersection over union value
-    return iou, (xA, yA, xB, yB)
+    return iou
 
 
 def gu_line_polar_intersection(rho1, theta1, rho2, theta2):
@@ -57,7 +57,7 @@ def angular_error_boxes(box1, box2):
     lower_points = sorted(box2, key=lambda x: x[1], reverse=True)[:2]
     rho2, theta2 = gu_line_polar_params_from_points(lower_points[0], lower_points[1])
 
-    print (theta1, theta2)
+    # print (theta1, theta2, file=sys.stderr)
     return abs(theta1-theta2)
 
 
@@ -72,33 +72,39 @@ def angular_error_box_angle (gt_box, hyp_angle):
     else:
         gt_angle = ((3.0*np.pi)/2 + theta1) * (180.0/np.pi)
 
-    print (theta1*(180.0/np.pi), gt_angle, hyp_angle)
+    # print (theta1*(180.0/np.pi), gt_angle, hyp_angle)
     return abs(gt_angle - hyp_angle)
 
-
+# Our funcitons
+## ui
 def get_xy(event, x, y, *etc):
+    '''
+    Used for getting pixel coordinates in imshow, just for debugging
+    '''
     if event == cv2.EVENT_LBUTTONDOWN:
         print(x, y)
 
-def draw_rrect(im, pts, color=(0, 255,0)):
-    # pts tuple with tlx, tly, brx, bry
-    # for i in range(len(pts)):
-    #     pts[i] = pts[i][::-1]
+
+def draw_rrect(im, pts, color=(0, 255, 0)):
+
     centroid = np.int16(np.mean(np.array(pts), 0))
 
+    # Draw lines
     im = cv2.line(im, tuple(pts[0]), tuple(pts[1]), color, 2)
     im = cv2.line(im, tuple(pts[1]), tuple(pts[2]), color, 2)
     im = cv2.line(im, tuple(pts[2]), tuple(pts[3]), color, 2)
     im = cv2.line(im, tuple(pts[3]), tuple(pts[0]), color, 2)
-    im = cv2.circle(im, tuple(pts[0]), 2, (0,0, 255), -1)
-    im = cv2.circle(im, tuple(pts[1]), 2, (0,0, 255), -1)
-    im = cv2.circle(im, tuple(pts[2]), 2, (0,0, 255), -1)
-    im = cv2.circle(im, tuple(pts[3]), 2, (0,0, 255), -1)
-    im = cv2.circle(im, tuple(centroid), 3, (0,0, 255), -1)
 
+    # Draw vertices
+    for i in range(4):
+        im = cv2.circle(im, tuple(pts[i]), 2, (0,0, 255), -1)
+
+    # Draw centroid
+    im = cv2.circle(im, tuple(centroid), 3, (0,0, 255), -1)
 
     return im
 
+## Utils
 def rotate_rect(rect, angle):
     centroid = np.mean(np.array(rect), 0)
     # print('Centroid', centroid)
@@ -110,12 +116,14 @@ def rotate_rect(rect, angle):
         rect[i] = np.int16(rot_mat.dot(np.array(list(rect[i])+[1])))
     return rect
 
+
 def rotate_image(image, angle):
     shape = image.shape[:2]
     image_center = tuple(np.array(shape[1::-1]) / 2)
     rot_mat = cv2.getRotationMatrix2D(image_center, angle, 1.0)
     result = cv2.warpAffine(image, rot_mat, shape[1::-1], flags=cv2.INTER_LINEAR)
     return result
+
 
 def rect4_to_rect2(rect):
     '''
@@ -128,6 +136,7 @@ def rect4_to_rect2(rect):
 
     return (*tl[::-1], *br[::-1])
 
+## Actual stuff
 def rbox_iou(box1, box2):
     '''
     Gets two rotated boxes and returns the IoU between them.
@@ -144,77 +153,63 @@ def rbox_iou(box1, box2):
     rect2 = rect4_to_rect2(rect2)
 
     # Used while debugging
-    ima = np.zeros((777, 777, 3), dtype=np.uint8)
-    ima = cv2.rectangle(ima, (rect1[0], rect1[1]), (rect1[2], rect1[3]), (0,0,255))
-    ima = cv2.rectangle(ima, (rect2[0], rect2[1]), (rect2[2], rect2[3]), (0,255,255))
-    cv2.imshow('ima', ima)
+    # ima = np.zeros((777, 777, 3), dtype=np.uint8)
+    # ima = cv2.rectangle(ima, (rect1[0], rect1[1]), (rect1[2], rect1[3]), (0,0,255))
+    # ima = cv2.rectangle(ima, (rect2[0], rect2[1]), (rect2[2], rect2[3]), (0,255,255))
+    # cv2.imshow('ima', ima)
 
     # Get iou
     return bbox_iou(rect1, rect2)
 
-with open('../datasets/qsd1_w5/frames.pkl', 'rb') as f:
-    gt_frames = pkl.load(f)
 
-# with open('pkl_data/frames.pkl', 'rb') as f:
-#     hyp_frames = pkl.load(f)
+def debug(gt_frames):
+    '''
+    Just for testing rotated iou was working
+    '''
+    sample_rect = gt_frames[5][0]
+    r_angle = 130
+    rotated_r = rotate_rect(sample_rect[1].copy(), r_angle)
 
-sample_rect = gt_frames[5][0]
-r_angle = 130
-rotated_r = rotate_rect(sample_rect[1].copy(), r_angle)
+    print('Mine:', rbox_iou(sample_rect, [r_angle, rotated_r]))
+    his_iou = bbox_iou(rect4_to_rect2(sample_rect[1]), rect4_to_rect2(rotated_r))
+    print('His:', his_iou)
 
-print('Mine:', rbox_iou(sample_rect, [r_angle, rotated_r])[0])
-his_iou, his_rect = bbox_iou(rect4_to_rect2(sample_rect[1]), rect4_to_rect2(rotated_r))
-print('His:', his_iou)
+    im = np.zeros((777, 777, 3), dtype=np.uint8)
+    im = draw_rrect(im, sample_rect[1])
+    im = draw_rrect(im, rotated_r, (255, 0, 0))
 
-im = np.zeros((777, 777, 3), dtype=np.uint8)
-im = draw_rrect(im, sample_rect[1])
-im = draw_rrect(im, rotated_r, (255, 0, 0))
-im = cv2.rectangle(im, (his_rect[0], his_rect[1]), (his_rect[2], his_rect[3]), (0,0,255))
-cv2.imshow('rct', im)
-cv2.waitKey(0)
+    cv2.imshow('rct', im)
+    cv2.waitKey(0)
 
-quit()
-
-sum_iou = 0
-n = 0
-for image in gt_frames:
-    for painting in image:
-        alpha = painting[0]
-        vertices = painting[1]
-        # get iou
-        # print(alpha, vertices)
-        n += 1
-
-# print(f'Mean IoU is {sum_iou/n}')
-
-
-img_idx = 8
-img_path = '../datasets/qsd1_w5/{:05d}.jpg'.format(img_idx)
-im = cv2.imread(img_path)
-if im is None:
-    print('Error reading image', img_path)
     quit()
 
-i = 0
-while True:
-    sample_rrect = gt_frames[i][0]
-    print(f' Image: {img_path}\n Frame: {i} \n Image size: {im.shape}\n Angle: {sample_rrect[0]} \n Vertices: {sample_rrect[1]}\n')
-    # tlx, tly, brx, bry = sample_rrect[1]
 
-    im_draw = draw_rrect(im.copy(), sample_rrect[1])
-    im_rot = rotate_image(im, -sample_rrect[0])
+def main():
+    '''
+    Gets the mean IoU and mean Angular Error. Our program's results should be
+    in pkl_results/frames.pkl
+    '''
+    with open('../datasets/qsd1_w5/frames.pkl', 'rb') as f:
+        gt_frames = pkl.load(f)
 
-    cv2.namedWindow('im')
-    cv2.setMouseCallback('im', get_xy)
+    with open('pkl_data/frames.pkl', 'rb') as f:
+        hyp_frames = pkl.load(f)
 
-    cv2.imshow('im', im_draw)
-    cv2.imshow('rotated im', im_rot)
+    sum_iou = 0
+    sum_ae = 0
 
-    k = cv2.waitKey(0)
+    n = 0
+    for gt_image, hyp_img in zip(gt_frames, hyp_frames):
+        for gt_painting, hyp_painting in zip(gt_image, hyp_img):
+            sum_iou += rbox_iou(gt_painting, hyp_painting)
+            sum_ae += angular_error_boxes(gt_painting[1], hyp_painting[1])
+            n += 1
 
-    if k is ord('q'):
-        break
-    elif k is ord('d'):
-        i+=1
-    elif k is ord('a'):
-        i -= 1
+    # TODO: divide by n or do the TP thing and divide only by those?
+    print(f'Mean IoU is {sum_iou/n}') 
+    print(f'Mean Angular Error is {sum_ae/n}')
+
+
+if __name__ == '__main__':
+    # debug()
+    main()
