@@ -75,15 +75,15 @@ def SIFT(img1,img2):
     # good = [m for m in matches if m.distance < 55]
     return len(good)
 
-def ORB(img1,img2):
+def ORB(img1,img2,mask=None):
     # Initiate ORB detector
     orb = cv2.ORB_create()
     # find the keypoints and descriptors with ORB
     kp1, des1 = orb.detectAndCompute(img1, None)
-    kp2, des2 = orb.detectAndCompute(img2, None)
+    kp2, des2 = orb.detectAndCompute(img2, mask)
     
-    print(len(kp1))
-    print(kp1[0].pt, kp1[0].angle)
+    print('kp=',len(kp1))
+    # print(kp1[0].pt, kp1[0].angle)
     good = []
     if True: # method 1 for getting matches
         # create BFMatcher object
@@ -93,10 +93,14 @@ def ORB(img1,img2):
         # Sort them in the order of their distance.
         matches = sorted(matches, key=lambda x: x.distance)
         # Draw first 10 matches.
-        # print(len(matches))
-        # img3 = cv2.drawMatches(img1, kp1, img2, kp2, matches[:10], None, flags=cv2.DrawMatchesFlags_NOT_DRAW_SINGLE_POINTS)
-        # plt.imshow(img3), plt.show()
-        good = [m for m in matches if m.distance < 21]
+        print('matches=',len(matches))
+
+        img3 = cv2.drawMatches(img1, kp1, img2, kp2, matches[:20], None, flags=cv2.DrawMatchesFlags_NOT_DRAW_SINGLE_POINTS)
+        plt.imshow(img3), plt.show()
+        good = [m for m in matches if m.distance < 35]
+        distance = [matches[m].distance for m in range(0,10)]
+        print("good=", len(good))
+        print("distance=",distance)
         # cv.drawMatchesKnn expects list of lists as matches.
         # print('Num matches:',  len(good))
         # img3 = cv2.drawMatchesKnn(img1,kp1,img2,kp2,good,None,flags=cv2.DrawMatchesFlags_NOT_DRAW_SINGLE_POINTS)
@@ -216,9 +220,10 @@ def DAISY(img1, img2):
 def main():
     # img1 = cv2.imread(r'../../datasets/BBDD/bbdd_00104.jpg')
     # img2 = cv2.imread(r'../../datasets/qsd1_w4/00008.jpg', cv2.IMREAD_COLOR)
-    img1 = cv2.imread(r'../datasets/BBDD/bbdd_00104.jpg')
+    img1 = cv2.imread(r'../datasets/BBDD/bbdd_00237.jpg')
     test = 0
-    img2 = cv2.imread('../datasets/qsd1_w4/{:05d}.jpg'.format(test), cv2.IMREAD_COLOR)
+    # img2 = cv2.imread('../datasets/qsd1_w4/{:05d}.jpg'.format(test), cv2.IMREAD_COLOR)
+    img2 = cv2.imread('../datasets/qsd1_w4/00005.jpg', cv2.IMREAD_COLOR)
     # 250,6
     # ORB(img1,img2)
     # SIFT(img1, img2)
@@ -235,39 +240,46 @@ def main():
         v1 = mask[:2]
         v2 = mask[2:]
         img_no_bg = img2[v1[1]:v2[1], v1[0]:v2[0]]
-    # cv2.imshow('im', img_no_bg)
-    # cv2.waitKey(0)
+    mask=masks[1]
+    v1 = mask[:2]
+    v2 = mask[2:]
+    img_no_bg = img2[v1[1]:v2[1], v1[0]:v2[0]]
+    cv2.imshow('im', img_no_bg)
+    cv2.waitKey(0)
     mask = box_retrieval.get_boxes(img_no_bg)
+    cv2.imshow('mask',mask*255)
+    cv2.waitKey()
     # des= DAISY(img_no_bg)
-    img1=cv2.resize(img1,(512,512),img1)
+    # img1=cv2.resize(img1,(512,512),img1)
+    mask = cv2.resize(mask, (512, 512), mask)
     img_no_bg = cv2.resize(img_no_bg, (512, 512), img_no_bg)
+    img_no_bg=cv2.medianBlur(img_no_bg,3)
 
-
-    print(f'testing for image {test}:')
-    for i in range(287):
-        img1 = cv2.imread('../datasets/BBDD/bbdd_{:05d}.jpg'.format(i))
-        img1=cv2.resize(img1,(512,512),img1)    
-        m = SIFT(img1,img_no_bg)
-        # m = ORB(img1,img_no_bg)
-        if m > 0:
-            print(i, m)
+    # print(f'testing for image {test}:')
+    # for i in range(287):
+    #     img1 = cv2.imread('../datasets/BBDD/bbdd_{:05d}.jpg'.format(i))
+    #     img1=cv2.resize(img1,(512,512),img1)
+    #     m = SIFT(img1,img_no_bg)
+    #     # m = ORB(img1,img_no_bg)
+    #     if m > 0:
+    #         print(i, m)
 
     # ORB(img1,img_no_bg)
     print('Done')
-    quit()
-    viz1,viz2, result = DAISY(img1,img_no_bg)
-
-    viz1=cv2.resize(viz1, (512,512),viz1)
-    viz2=cv2.resize(viz2, (512, 512), viz2)
-    print('shape1',viz1.shape)
-    print('shape2', viz2.shape)
-    print('result=',result)
-    cv2.imshow('viz1', viz1)
-    cv2.imshow('viz2',viz2)
-    cv2.waitKey()
-    quit()
+    # quit()
+    # viz1,viz2, result = DAISY(img1,img_no_bg)
+    #
+    # viz1=cv2.resize(viz1, (512,512),viz1)
+    # viz2=cv2.resize(viz2, (512, 512), viz2)
+    # print('shape1',viz1.shape)
+    # print('shape2', viz2.shape)
+    # print('result=',result)
+    # cv2.imshow('viz1', viz1)
+    # cv2.imshow('viz2',viz2)
+    # cv2.waitKey()
+    # quit()
     # results = compare_SIFT(img_no_bg, descriptor='sift',mask= 1-mask, measure='flann')
-    print('surf')
+    m = ORB(img1, img_no_bg,1-mask)
     results = compare_ORB(img_no_bg,descriptor='orb', mask=1-mask, measure='BFM')
 
     results.sort(key=lambda x: x[1],reverse=True)

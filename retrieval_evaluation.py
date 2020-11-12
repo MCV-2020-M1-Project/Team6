@@ -49,7 +49,7 @@ def main(queryset_name, descriptor, measure, k, similarity, background, bbox, oc
     for i in range(qs_number):
 
         # # end ignore -1
-        # if i in {0, 2, 3, 4, 9, 12, 14, 18, 20, 21, 27}: 
+        # if i in {0, 2, 3, 4, 9, 12, 14, 18, 20, 21, 27}:
         #     continue
         # # end ignore -1
 
@@ -136,7 +136,7 @@ def main(queryset_name, descriptor, measure, k, similarity, background, bbox, oc
             # get a dict with the descriptors for the n pictures per painting
             temp_list = []
             for i in range(len(paintings)):
-                d = desc.get_descriptors(paintings[i].copy(), None) # box_masks[i]) #TODO: Trying not giving masks, as boxes are transparent
+                d = desc.get_descriptors(paintings[i].copy(), box_masks[i]) #TODO: Trying not giving masks, as boxes are transparent
                 d['author'] = d['title'] = text_list[i]
                 temp_list.append(d)
                 # print(d['author'])
@@ -171,7 +171,7 @@ def main(queryset_name, descriptor, measure, k, similarity, background, bbox, oc
     predicted = []
     for query_descript_dic in qs_descript_list:
         predicted.append([cbir.get_top_k_multi(p, \
-                        db_descript_list,  ['hog', 'hsv_multiresolution'], [0.5, 0.5], \
+                        db_descript_list,  [descriptor], [1], \
                         measure, similarity, k, {'author': 0.3}, desc_check=desc_check) \
                         for p in query_descript_dic])
     # ['hog', 'hsv_multiresolution', 'DCT-16-64'], [0.5, 0.5, 0],

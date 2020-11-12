@@ -35,8 +35,11 @@ def get_bf_matching(des1, des2):
     bf = cv2.BFMatcher(cv2.NORM_HAMMING, crossCheck=True)
     # Match descriptors.
     matches = bf.match(des1, des2)
+
     # Sort them in the order of their distance.
-    good_matches = sorted(matches, key=lambda x: x.distance)
+    # good_matches = sorted(matches, key=lambda x: x.distance)
+
+    good_matches = [m for m in matches if m.distance < 35]
 
     return len(good_matches)
 

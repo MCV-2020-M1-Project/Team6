@@ -3,8 +3,37 @@ import numpy as np
 from skimage.feature import local_binary_pattern, hog,daisy
 import pytesseract
 
-
 def painting_in_db(des1, dataset, mask=None, method=1):
+    '''
+    Method 1, 2 and 3 > Get only distance, differences are:
+        - 1: Thresh is 21
+        - 2: Thresh is 35
+        - 3: Thresh us 35 and singles point matches are ignored
+    Method 4 > Get 2 nearest matches and compared them. The first one must be significantly better than the second for it to be valid.
+    Then, matches with 3 or less points are ignored
+    '''
+    total_sum = 150000
+
+    des1 = des1['orb']
+
+    bf = cv2.BFMatcher(cv2.NORM_HAMMING, crossCheck=True)
+    # bf = cv2.BFMatcher(cv2.NORM_L1, crossCheck=True)
+
+    # Iterate over the ds
+    for ds_im in dataset:
+
+        des2 = ds_im['orb']
+        if des2 is None:
+            continue
+        # print(len(des1), len(des2))
+        good = []
+        matches = bf.match(des1, des2)
+        good = [m for m in matches if m.distance < 35]
+        if len(good) > 4: return False
+
+    return True
+
+def painting_in_db_old(des1, dataset, mask=None, method=1):
     '''
     Method 1, 2 and 3 > Get only distance, differences are:
         - 1: Thresh is 21
@@ -50,7 +79,7 @@ def painting_in_db(des1, dataset, mask=None, method=1):
             else:
                 good = [m for m in matches if m.distance < 35]
                 if method == 3:
-                    total_sum += len(good) if len(good) > 1 else 0
+                    total_sum += len(good) if len(good) > 4 else 0
                 else:
                     total_sum += len(good)
     return False
@@ -126,9 +155,10 @@ def get_sift_desc(img, mask=None):
 
 
 def get_orb_desc(img, mask=None):
-    img = cv2.resize(img,(512,512))    
+    if mask is not None: mask = cv2.resize(mask,(512,512))
+    img = cv2.resize(img,(512,512))
     # Initiate ORB detector
-    orb = cv2.ORB_create()
+    orb = cv2.ORB_create(scaleFactor=1.1,fastThreshold=10,WTA_K=2)
     # find the keypoints with ORB
     # kp = orb.detect(img, mask)
     # # compute the descriptors with ORB
@@ -550,7 +580,7 @@ def get_descriptors(img, mask=None):
     # descript_dic['cielab_concat_hist'] = get_bgr_concat_hist(img, mask)
     # descript_dic['ycrcb_concat_hist'] = get_ycrcb_concat_hist(img, mask)
     # descript_dic['sift'] = get_sift_desc(img, None)
-    descript_dic['orb'] = get_orb_desc(img, None)
+    descript_dic['orb'] = get_orb_desc(img, mask)
     # descript_dic['daisy'] = get_daisy_desc(img)
     # descript_dic['lbp'] = get_lbp(img)
     # descript_dic['hsv_concat_hist'] = get_hsv_concat_hist(img, mask)
@@ -572,8 +602,8 @@ def get_descriptors(img, mask=None):
     # descript_dic['hs_multi_hist'] = get_hs_multi_hist(tiles, mask_tiled)
     # descript_dic['hs_multiresolution'] = get_hs_multiresolution_hist(img, mask)
     # descript_dic['bgr_multiresolution'] = get_multiresolution_hist(img, mask)
-    descript_dic['hsv_multiresolution'] = get_multiresolution_hist(cv2.cvtColor(img, cv2.COLOR_BGR2HSV), mask)
-    descript_dic['hog'] = get_hog(img)
+    # descript_dic['hsv_multiresolution'] = get_multiresolution_hist(cv2.cvtColor(img, cv2.COLOR_BGR2HSV), mask)
+    # descript_dic['hog'] = get_hog(img)
     # lbp_im = get_lbp(cv2.cvtColor(img, cv2.COLOR_BGR2GRAY))
     # descript_dic['lbp_multiresolution'] = get_gray_multiresolution_hist(lbp_im, mask)
     # descript_dic['lbp_hist'] = get_gray_hist(lbp_im, mask)
