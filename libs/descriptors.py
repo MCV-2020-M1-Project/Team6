@@ -18,9 +18,9 @@ def painting_in_db(des1, dataset, mask=None, method=1):
 
     bf = cv2.BFMatcher(cv2.NORM_HAMMING, crossCheck=True)
     # bf = cv2.BFMatcher(cv2.NORM_L1, crossCheck=True)
-
+    biggest_match = 0
     # Iterate over the ds
-    for ds_im in dataset:
+    for id,ds_im in enumerate(dataset):
 
         des2 = ds_im['orb']
         if des2 is None:
@@ -28,8 +28,18 @@ def painting_in_db(des1, dataset, mask=None, method=1):
         # print(len(des1), len(des2))
         good = []
         matches = bf.match(des1, des2)
+        matches = sorted(matches, key=lambda x: x.distance)
+        index_compare = len(matches)//10
         good = [m for m in matches if m.distance < 35]
-        if len(good) > 4: return False
+        matches_calc = [m.distance for m in matches[:index_compare]]
+        var = np.var(np.array(matches_calc))
+        # print("id=",id,"len good = ", len(good) , "var=", var)
+        # print('var=', var)
+        # if len(good) > 4: return False
+        if len(good)>biggest_match: biggest_match=len(good)
+        if len(good) > 3:
+            if var < 20:
+                return False
 
     return True
 
@@ -130,8 +140,6 @@ def painting_in_db2(des1, dataset, mask=None, method=1):
         total_sum += len(good) if len(good) > 0 else 0
 
     return False
-
-
 
 
 def get_daisy_desc(img):

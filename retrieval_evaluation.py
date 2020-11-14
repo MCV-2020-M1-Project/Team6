@@ -136,6 +136,8 @@ def main(queryset_name, descriptor, measure, k, similarity, background, bbox, oc
             # get a dict with the descriptors for the n pictures per painting
             temp_list = []
             for i in range(len(paintings)):
+                # cv2.imshow('img',paintings[i])
+                # cv2.waitKey()
                 d = desc.get_descriptors(paintings[i].copy(), box_masks[i]) #TODO: Trying not giving masks, as boxes are transparent
                 d['author'] = d['title'] = text_list[i]
                 temp_list.append(d)
@@ -249,6 +251,7 @@ def main(queryset_name, descriptor, measure, k, similarity, background, bbox, oc
                 tp += 1
             else:
                 fp += 1
+                print(a)
         else: #negative
             if a == -1:
                 fn += 1

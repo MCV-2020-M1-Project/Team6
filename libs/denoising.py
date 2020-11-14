@@ -23,14 +23,15 @@ def denoise_img(img):
     k_size = 3 if k_size < 3 else k_size
 
     gauss = cv2.GaussianBlur(img,(k_size, k_size), 0)
-    median = cv2.medianBlur(img, k_size)
+    median = cv2.medianBlur(img, 5)
 
     gauss_psnr = get_psnr(img, gauss)
     gauss_mad = get_mad(img, gauss)
     median_psnr = get_psnr(img, median)
 
     denoised_img = img
-    if gauss_mad > 20: # maybe here call antonis function
+    if gauss_mad > 20:
+        return median# maybe here call antonis function
         if gauss_psnr > median_psnr and abs(get_psnr(img, gauss) - get_psnr(img, median)) > 1.5:
             denoised_img = gauss
         else:
