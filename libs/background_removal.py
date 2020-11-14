@@ -191,6 +191,7 @@ def method_colorspace_threshold(image, x_range, y_range, z_range, colorspace, sa
         return np.uint8(mask_matrix / 255)
 
 
+
 def contours_overlap(contour_A, contour_B):
     # Coordinates of bounding rectangle 1
     Ax, Ay, Aw, Ah = cv.boundingRect(contour_A)
@@ -268,6 +269,162 @@ def method_canny_multiple_paintings_old(image, save=False, generate_measures=Fal
         # List element: [x, y, x+w, y+h]
         return np.uint8(mask), list_of_painting_coordinates
 
+## Utils
+def rotate_rect(rect, angle):
+    centroid = np.mean(np.array(rect), 0)
+    # print('Centroid', centroid)
+    # print('Angle', angle)
+    # print('Rect', rect[0])
+    centroid = tuple(centroid)
+    rot_mat = cv.getRotationMatrix2D(centroid, angle, 1.0)
+    for i in range(len(rect)):
+        rect[i] = np.int16(rot_mat.dot(np.array(list(rect[i])+[1])))
+    return rect
+
+
+def rotate_image(image, angle, centroid=None):
+    shape = image.shape[:2]
+    image_center = tuple(np.array(shape[1::-1]) / 2) if centroid is None else centroid
+    rot_mat = cv.getRotationMatrix2D(image_center, angle, 1.0)
+    result = cv.warpAffine(image.copy(), rot_mat, shape[1::-1], flags=cv.INTER_LINEAR)
+    return result
+
+def rect4_to_rect2(rect):
+    '''
+    Gets a rect defined by its four corners and returns only top left and bottom right points
+    in the format (tly,tlx, bry, brx)
+    '''
+    sorted_points = sorted(rect, key=lambda x: x[0]+x[1])
+    tl = sorted_points[0]
+    br = sorted_points[-1]
+
+    return (*tl[::-1], *br[::-1])
+
+def get_rrect_area(rect, angle):
+    '''
+    Gets a rotated rect in the format angle, [pt1,pt2,pt3,p4] and returns area
+    '''
+    # Rotate rect
+    straight_rect = rotate_rect(rect.copy(), angle)
+
+    # Get 2 opposite corners
+    r = rect4_to_rect2(straight_rect.copy())
+
+    # Gets area
+    return (r[2]-r[0])*(r[3]-r[1])
+
+def draw_rrect(im, pts, color=(0, 255, 0)):
+
+    centroid = np.int16(np.mean(np.array(pts), 0))
+
+    # Draw lines
+    im = cv.line(im, tuple(pts[0]), tuple(pts[1]), color, 5)
+    im = cv.line(im, tuple(pts[1]), tuple(pts[2]), color, 5)
+    im = cv.line(im, tuple(pts[2]), tuple(pts[3]), color, 5)
+    im = cv.line(im, tuple(pts[3]), tuple(pts[0]), color, 5)
+
+    # Draw vertices
+    for i in range(4):
+        im = cv.circle(im, tuple(pts[i]), 2, (0,0, 255), -1)
+
+    # Draw centroid
+    im = cv.circle(im, tuple(centroid), 3, (0,0, 255), -1)
+
+    return im
+
+def method_canny_multiple_paintings_rot(image):
+
+    img = image
+
+    #############################################################################
+    # Canny
+    image_gray = cv.cvtColor(img, cv.COLOR_RGB2GRAY)
+    blurred = cv.GaussianBlur(image_gray, (5, 5), 0)
+    # closed = cv2.morphologyEx(blurred, cv2.MORPH_OPEN, np.ones([5,5]))
+    edges = cv.Canny(blurred, 40, 120)
+    edges = cv.morphologyEx(edges, cv.MORPH_DILATE, np.ones([5, 5]))
+    #############################################################################
+
+    contours, hierarchy = cv.findContours(edges, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_NONE)
+    contour = max(contours, key=len)
+
+    # List of contours (np arrays) where pos 0 is the biggest in length
+    reversed_sorted_contours = sorted(contours, key=len, reverse=True)
+
+    # Consider largest contour to be the first painting
+    first_contour = reversed_sorted_contours[0]
+
+    list_of_painting_coordinates = [] # now format is [angle, [pt1,pt2,pt3,pt4]]
+
+    # First painting
+    # TODO: min(Aw,Ah) > max(Aw,Ah)/5
+
+    first_rect = cv.minAreaRect(first_contour)
+    first_box = cv.boxPoints(first_rect)
+    first_box = np.int0(first_box) # The four corners
+    first_angle = first_rect[2] if abs(first_rect[2]) <= 45 else 90 + first_rect[2]
+    first_centroid = tuple(np.mean(np.array(first_box), 0))
+
+
+    # Display stuff
+    # print(first_angle)
+    # edges = cv.cvtColor(edges, cv.COLOR_GRAY2BGR)
+
+    # draw_edges = draw_rrect(edges.copy(), first_box)
+    # cv.imshow('ahi', draw_edges)
+    # cv.waitKey()
+
+    # edges = cv.drawContours(edges,[first_box],0,(0,0,255),1)
+    # rot_edges = rotate_image(edges.copy(), first_angle, centroid=first_centroid)
+    # rot_edges = draw_rrect(rot_edges.copy(), rotate_rect(first_box.copy(), first_angle))
+    # cv.imshow('canny', cv.resize(rot_edges.copy(), (500, 500*rot_edges.shape[0]//rot_edges.shape[1])))
+    # cv.waitKey(0)
+
+    # print(first_box.copy())
+    # print(rotate_rect(first_box.copy(), first_angle))
+    # print(rect4_to_rect2(rotate_rect(first_box.copy(), first_angle)))
+
+    list_of_painting_coordinates.append([first_angle, first_centroid, rect4_to_rect2(rotate_rect(first_box.copy(), first_angle))])
+
+    # Second painting (not always there is a second painting)
+    # print("="*25)
+    edges = cv.cvtColor(edges, cv.COLOR_GRAY2BGR)
+
+    for contour in reversed_sorted_contours:
+        hyp_rect = cv.minAreaRect(contour)
+        inter = cv.rotatedRectangleIntersection(first_rect, hyp_rect)
+
+        hyp_box = cv.boxPoints(hyp_rect)
+        hyp_box = np.int0(hyp_box) # The four corners
+        hyp_angle = hyp_rect[2] if abs(hyp_rect[2]) <= 45 else 90 + hyp_rect[2]
+        hyp_centroid = tuple(np.mean(np.array(hyp_box), 0))
+
+        # if inter[0] == cv.INTERSECT_NONE:
+        #     print('No intersection')
+        # elif inter[0] == cv.INTERSECT_PARTIAL:
+        #     print('Partial intersection')
+        #     print(inter[1])
+        # elif inter[0] == cv.INTERSECT_FULL:
+        #     print('Full intersection')
+        # continue
+
+        if inter[0] == cv.INTERSECT_NONE: #TODO: Maybe try partial intersection with small area
+            if get_rrect_area(hyp_box, hyp_angle) > get_rrect_area(first_box, first_angle) / 4: #TODO and min(Bw,Bh) > max(Bw,Bh)/5:  # area of the second painting is
+                # draw_ed = draw_rrect(edges.copy(), hyp_box)
+                # cv.imshow('after', cv.resize(draw_ed, (500, 500*edges.shape[0]//edges.shape[1])))
+                # rot_edges = rotate_image(edges.copy(), hyp_angle, centroid=hyp_centroid)
+                # rot_edges = draw_rrect(rot_edges.copy(), rotate_rect(hyp_box.copy(), hyp_angle))
+                # cv.imshow('canny sec', cv.resize(rot_edges, (500, 500*rot_edges.shape[0]//rot_edges.shape[1])))
+                # cv.waitKey(0)
+                
+                list_of_painting_coordinates.append([hyp_angle, hyp_centroid, rect4_to_rect2(rotate_rect(hyp_box, hyp_angle))])
+            else:
+                break
+    
+    # input('Press any key to continue...')
+
+    return 0, list_of_painting_coordinates
+
 
 def method_canny_multiple_paintings(image, save=False, generate_measures=False):
 
@@ -302,6 +459,7 @@ def method_canny_multiple_paintings(image, save=False, generate_measures=False):
 
     # First painting
     # TODO: min(Aw,Ah) > max(Aw,Ah)/5
+    
     Ax, Ay, Aw, Ah = cv.boundingRect(first_contour)
     list_of_painting_coordinates.append([Ax, Ay, Ax+Aw, Ay+Ah])
     mask[Ay:Ay+Ah, Ax:Ax+Aw] = 1

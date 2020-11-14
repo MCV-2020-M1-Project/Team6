@@ -6,6 +6,9 @@ from libs import background_removal as bg
 from libs import text_retrieval as txt
 from libs import distance_metrics as dist
 
+
+
+
 def sort_rects_lrtb(rect_list):
     '''
     Sorts rect lists from left to right and top to bottom
@@ -17,7 +20,7 @@ test_set = 'qsd1_w4'
 text_gt = []
 for i in range(30):
     txt_path = '../datasets/{}/{:05d}.txt'.format(test_set, i)
-    print(txt_path)
+    # print(txt_path)
     with open(txt_path, 'r', encoding='ISO-8859-1') as fp:
         t = fp.read()
         t = t.splitlines()
@@ -25,11 +28,11 @@ for i in range(30):
             text_info = line.strip()[1:-1].replace("'",'').split(',')
             text_info = tuple([line.strip() for line in text_info])
 
-            print(text_info)
+            # print(text_info)
             text_gt.append(text_info)
 
 
-methods = {'old': bbox.get_boxes_old, 'new': bbox.get_boxes}
+methods = {'new': bbox.get_boxes}
 results = []
 
 for i in range(30):
@@ -53,6 +56,7 @@ for i in range(30):
 
         for paint in paintings:
             bbox.append(f(paint))
+        # continue
 
         mask = f(im)
         if isinstance(mask, tuple):
@@ -72,11 +76,11 @@ for i in range(30):
         new_item[k] = txt.get_text(masked_img)
 
     results.append(new_item)
-
+    
 # Save results
-for i, r in enumerate(results):
-    print('ocr_results/{:05d}.txt'.format(i))
-    print(r['new'])
+# for i, r in enumerate(results):
+#     print('ocr_results/{:05d}.txt'.format(i))
+#     print(r['new'])
 
 
 results_error = {}

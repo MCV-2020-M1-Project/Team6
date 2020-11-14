@@ -71,6 +71,7 @@ def check_box_fill(im, x, y, w, h):
 def get_boxes(im):
 
     original_size = im.shape[:2]
+    original_image = im.copy()
 
     im = cv.resize(im, (500, 500*im.shape[0]//im.shape[1]))
     him, wim = im.shape[:2]
@@ -163,12 +164,99 @@ def get_boxes(im):
     kernel = cv.getStructuringElement(cv.MORPH_RECT, (wim//25,10))
     box_mask = cv.morphologyEx(box_mask, cv.MORPH_DILATE, kernel, iterations=2)
 
-    # cv.imshow('result:',im[:,:,1]*box_mask)
+
     box_mask = cv.resize(box_mask, original_size[::-1])
+    
+    a = np.where(box_mask > 0)
+    pts = [(i, j) for i,j in zip(*a)]
+    if len(pts) > 0:
+        box_mask = fit_box(pts, original_image)
+  
 
     return box_mask
 
-def choose_best_rectangle(rects,laplacian):
+def fit_box(rect, im):
+
+    def get_xy(event, x, y, *etc):
+        '''
+        Used for getting pixel coordinates in imshow, just for debugging
+        '''
+        if event == cv.EVENT_LBUTTONDOWN:
+            print(x, y)
+    
+    def is_black_over_white(im):
+        '''
+        Checks whether the input (binarised) images is black over white or the other way around
+        '''
+        im_area = im.shape[0]*im.shape[1]
+        num_white = np.sum(im/255)
+
+        # print(100*num_white/im_area, '% white')
+        return  100*num_white/im_area > 50
+
+    im = cv.cvtColor(im,cv.COLOR_BGR2GRAY) if len(im.shape) == 3 else im
+    im = cv.GaussianBlur(im,(3,3),0)
+    box = im[rect[0][0]:rect[-1][0], rect[0][1]:rect[-1][1]]
+    # cv.imshow('before', box)
+
+    # print(im.shape)
+    # print(rect[0][0], rect[-1][0], rect[0][1], rect[-1][1])
+    # print(box.shape)
+    gray = cv.threshold(box, 0, 255, cv.THRESH_BINARY | cv.THRESH_OTSU)[1]
+    if not is_black_over_white(gray):
+        gray = cv.bitwise_not(gray)
+    gray = cv.morphologyEx(gray, cv.MORPH_CLOSE, cv.getStructuringElement(cv.MORPH_ELLIPSE, (2,2)))
+    gray_sob = cv.Sobel(gray.copy(), cv.CV_64F, 1, 0)
+    
+    vector = gray[gray.shape[0]//2, :].copy()
+    # cv.normalize(vector,vector,1,norm_type=cv.NORM_L2)
+
+    gmax =vector.max()
+    
+    for i in range(len(vector)):
+        if abs(vector[i]) < gmax*0.5:
+            vector[i] = 0
+    vector = abs(vector)
+
+    grad_vector = np.float64(vector.copy())
+    grad_vector[:-1] = abs(grad_vector[1:] - grad_vector[:-1])
+    grad_vector[-1] = 1 # dirty trick
+    widths = []
+    d = 0
+    for i in range(len(grad_vector)):
+        if grad_vector[i] > 0:
+            widths.append(i - d)
+            d = i
+    med = np.median(widths)
+
+    # print(med)
+    # print(widths)
+    # win_size = 5
+    # pos = 0
+    # for i in range(len(widths)-win_size):
+    #     pos += widths[i]
+    #     if np.sum(widths[i:i+win_size] < med - 4) > 2:
+    #         print('match at', pos)
+
+    # plt.plot(vector)
+    # plt.plot(grad_vector)
+    gray = abs(gray)
+    gray = gray.astype(np.uint8)
+    gray = cv.cvtColor(gray, cv.COLOR_GRAY2BGR)
+    cv.line(gray, (0,gray.shape[0]//2),  (gray.shape[1],gray.shape[0]//2), (255,0,0))
+    # cv.namedWindow('gray')
+    # cv.setMouseCallback('gray', get_xy)
+    # cv.imshow('gray', gray)
+    beg = widths[0] - 5 if widths[0] > 5 else widths[0]
+    end = -widths[-1] + 10 if widths[-1] > 10 else -widths[-1]
+    # plt.show()
+    # cv.waitKey(0)
+    the_rect = rect[0][0], rect[-1][0], rect[0][1]+beg, rect[-1][1]+end
+    ret_mask = np.zeros_like(im)
+    ret_mask[the_rect[0]:the_rect[1], the_rect[2]:the_rect[3]] = np.ones((the_rect[1] - the_rect[0],the_rect[3]-the_rect[2]), np.uint8)
+    return ret_mask
+
+def choose_best_rectangle(rects, laplacian):
     the_rect = None
     min_sumita = np.inf
     for rect in rects:

@@ -44,10 +44,10 @@ def main(queryset_name, descriptor, measure, k, similarity, background, bbox, oc
     #Get a dic with the descriptors of the images in the query set
     qs_descript_list = []
 
-    bbox_list = []
-
     for i in range(qs_number):
 
+        # if i != 7:
+        #     continue
         # # end ignore -1
         # if i in {0, 2, 3, 4, 9, 12, 14, 18, 20, 21, 27}: 
         #     continue
@@ -64,18 +64,34 @@ def main(queryset_name, descriptor, measure, k, similarity, background, bbox, oc
         if background:
             # masks = bg.method_canny(img)
             # _, masks = bg.hsv_thresh_method(img.copy(), 2)
-            masks = bg.method_canny_multiple_paintings(img.copy())[1]
-
-            masks = sort_rects_lrtb(masks)
+            masks = bg.method_canny_multiple_paintings_rot(img.copy())[1]
+            # print(masks)
+            masks = sorted(masks, key = lambda x: (x[2][1], x[2][0]))
+            # print(masks)
+            # if len(masks) > 1:
+            #     input('Press enter to continue...')
             for mask in masks:
-                if abs(mask[1] - mask[3]) < 50: # wrong crop
+                angle = mask[0]
+                centroid = mask[1]
+                rect = mask[2]
+                # print(f'Angle: {angle}\n Rect:{rect}')
+                # Rotate image 
+                rot_im = bg.rotate_image(img.copy(), angle, centroid=centroid)
+                mask = mask[1] # so that mask i sthe rect again
+
+                rect = tuple([abs(r) for r in rect])
+                if abs(rect[1] - rect[3]) < 50 or abs(rect[0] - rect[2]) < 50: # wrong crop
                     continue
-                v1 = mask[:2]
-                v2 = mask[2:]
-                paintings.append(img[v1[1]:v2[1], v1[0]:v2[0]])
+                v1 = rect[:2]
+                v2 = rect[2:]
+                crop = rot_im[rect[0]:rect[2], rect[1]:rect[3]]
+                # print(crop.shape)
+                # cv2.imshow('Cropped', cv2.resize(crop, (500, 500*crop.shape[0]//crop.shape[1])))
+                # cv2.waitKey(0)
+                paintings.append(crop)
         else:
             paintings = [img]
-        
+
         # print(i, len(paintings))
 
         # for i, p in enumerate(paintings):
@@ -108,7 +124,8 @@ def main(queryset_name, descriptor, measure, k, similarity, background, bbox, oc
 
                 # cv2.imshow('ocr', cv2.resize(p, (500, 500*p.shape[0]//p.shape[1])))
                 # cv2.imshow('Mask', cv2.resize(255*mask, (500, 500*p.shape[0]//p.shape[1])))
-
+                # cv2.imshow('Pain', cv2.resize(p, (500, 500*p.shape[0]//p.shape[1])))
+                # cv2.waitKey(0)
                 a = np.where(mask > 0)
                 pts = [(i, j) for i,j in zip(*a)]
 
@@ -145,29 +162,12 @@ def main(queryset_name, descriptor, measure, k, similarity, background, bbox, oc
 
             # qs_descript_list.append([desc.get_descriptors(paintings[i].copy(), box_masks[i]) \
             #  for i in range(len(paintings))])
-
-            # Save text boxes in a pkl for evaluation
-            temp_list = []
-            for l, painting in enumerate(paintings):
-                bbox_loc =  boxret.filled_boxes(painting.copy())[4]
-                mask_loc = masks[l] if background else (0, 0)
-
-                bbox_loc[0] += mask_loc[0]
-                bbox_loc[1] += mask_loc[1]
-                bbox_loc[2] += mask_loc[0]
-                bbox_loc[3] += mask_loc[1]
-
-                temp_list.append(bbox_loc)
-
-            bbox_list.append(sort_rects_lrtb(temp_list))
         else:
             # get a dic with the descriptors for the n pictures per painting
             qs_descript_list.append([desc.get_descriptors(painting.copy(), None) \
              for painting in paintings])
 
-    # save bounding box pkl
-    # with open('text_boxes.pkl', 'wb') as f:
-    #     pkl.dump(bbox_list, f)
+
 
     predicted = []
     for query_descript_dic in qs_descript_list:
@@ -176,7 +176,7 @@ def main(queryset_name, descriptor, measure, k, similarity, background, bbox, oc
                         measure, similarity, k, {'author': 0.3}, desc_check=desc_check) \
                         for p in query_descript_dic])
     # print(predicted)
-
+# ['hog', 'hsv_multiresolution'], [0.5, 0.5]
     # For generating submission pkl
     # with open('../dlcv06/m1-results/week4/QST1/method1/result.pkl', 'wb') as f:
     #     print('Pickles...')
