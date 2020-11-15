@@ -191,7 +191,6 @@ def method_colorspace_threshold(image, x_range, y_range, z_range, colorspace, sa
         return np.uint8(mask_matrix / 255)
 
 
-
 def contours_overlap(contour_A, contour_B):
     # Coordinates of bounding rectangle 1
     Ax, Ay, Aw, Ah = cv.boundingRect(contour_A)
@@ -365,6 +364,9 @@ def method_canny_multiple_paintings_rot(image):
     first_angle = first_rect[2] if abs(first_rect[2]) <= 45 else 90 + first_rect[2]
     first_centroid = tuple(np.mean(np.array(first_box), 0))
 
+    #TODO Check angles and point order is correct
+    first_pkl = [first_angle, first_box]
+
 
     # Display stuff
     # print(first_angle)
@@ -384,7 +386,7 @@ def method_canny_multiple_paintings_rot(image):
     # print(rotate_rect(first_box.copy(), first_angle))
     # print(rect4_to_rect2(rotate_rect(first_box.copy(), first_angle)))
 
-    list_of_painting_coordinates.append([first_angle, first_centroid, rect4_to_rect2(rotate_rect(first_box.copy(), first_angle))])
+    list_of_painting_coordinates.append([first_angle, first_centroid, rect4_to_rect2(rotate_rect(first_box.copy(), first_angle)), first_pkl])
 
     # Second painting (not always there is a second painting)
     # print("="*25)
@@ -399,6 +401,7 @@ def method_canny_multiple_paintings_rot(image):
         hyp_angle = hyp_rect[2] if abs(hyp_rect[2]) <= 45 else 90 + hyp_rect[2]
         hyp_centroid = tuple(np.mean(np.array(hyp_box), 0))
 
+        hyp_pkl = [hyp_angle, hyp_box]
         # if inter[0] == cv.INTERSECT_NONE:
         #     print('No intersection')
         # elif inter[0] == cv.INTERSECT_PARTIAL:
@@ -417,7 +420,7 @@ def method_canny_multiple_paintings_rot(image):
                 # cv.imshow('canny sec', cv.resize(rot_edges, (500, 500*rot_edges.shape[0]//rot_edges.shape[1])))
                 # cv.waitKey(0)
                 
-                list_of_painting_coordinates.append([hyp_angle, hyp_centroid, rect4_to_rect2(rotate_rect(hyp_box, hyp_angle))])
+                list_of_painting_coordinates.append([hyp_angle, hyp_centroid, rect4_to_rect2(rotate_rect(hyp_box, hyp_angle)), hyp_pkl])
             else:
                 break
     

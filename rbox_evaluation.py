@@ -183,6 +183,18 @@ def debug(gt_frames):
 
     quit()
 
+def check_point_order(box):
+    print(box)
+    print(box.shape)
+    x = np.max(box[:,0])
+    y = np.max(box[:,1])
+    ecran = np.zeros((x,y, 3))
+
+    for i, p in enumerate(box):
+        ecran = cv2.putText(ecran, str(i), tuple(p), cv2.FONT_HERSHEY_COMPLEX, 1, (0,0,255))
+    
+    cv2.imshow('Points', ecran)
+    cv2.waitKey(0)
 
 def main():
     '''
@@ -201,6 +213,8 @@ def main():
     n = 0
     for gt_image, hyp_img in zip(gt_frames, hyp_frames):
         for gt_painting, hyp_painting in zip(gt_image, hyp_img):
+            check_point_order(hyp_painting[1])
+            quit()
             sum_iou += rbox_iou(gt_painting, hyp_painting)
             sum_ae += angular_error_boxes(gt_painting[1], hyp_painting[1])
             n += 1
@@ -213,3 +227,7 @@ def main():
 if __name__ == '__main__':
     # debug()
     main()
+
+
+# with open('pkl_data/harmony.pkl', 'wb') as f:
+#     pkl.dump(harm_dict, f)

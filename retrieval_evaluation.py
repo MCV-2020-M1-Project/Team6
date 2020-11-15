@@ -43,6 +43,7 @@ def main(queryset_name, descriptor, measure, k, similarity, background, bbox, oc
 
     #Get a dic with the descriptors of the images in the query set
     qs_descript_list = []
+    frames_save = []
 
     for i in range(qs_number):
 
@@ -74,10 +75,12 @@ def main(queryset_name, descriptor, measure, k, similarity, background, bbox, oc
             # print(masks)
             # if len(masks) > 1:
             #     input('Press enter to continue...')
+            temp_frame_list = []
             for mask in masks:
                 angle = mask[0]
                 centroid = mask[1]
                 rect = mask[2]
+                temp_frame_list.append(mask[3])
                 # print(f'Angle: {angle}\n Rect:{rect}')
                 # Rotate image 
                 rot_im = bg.rotate_image(img.copy(), angle, centroid=centroid)
@@ -92,7 +95,7 @@ def main(queryset_name, descriptor, measure, k, similarity, background, bbox, oc
                 # cv2.imshow('Cropped', cv2.resize(crop, (500, 500*crop.shape[0]//crop.shape[1])))
                 # cv2.waitKey(0)
                 paintings.append(crop)
-
+            frames_save.append(temp_frame_list)
         else:
             paintings = [img]
 
@@ -176,6 +179,11 @@ def main(queryset_name, descriptor, measure, k, similarity, background, bbox, oc
             qs_descript_list.append([desc.get_descriptors(painting.copy(), None) \
              for painting in paintings])
         print('='*20)
+
+    # Save frame info
+    with open('pkl_data/frames.pkl', 'wb') as f:
+        pkl.dump(frames_save, f)
+    
     predicted = []
     print('Getting predictions...')
     for query_descript_dic in qs_descript_list:
