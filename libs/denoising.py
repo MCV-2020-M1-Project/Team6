@@ -18,7 +18,8 @@ def denoise_img(img):
     if no need to denoise: img as is
     else: a dicr with keys 'ocr', 'color'
     '''
-    
+    return cv2.medianBlur(img, 5)
+
     k_size = np.max(img.shape)//300
     k_size = k_size if k_size % 2 else k_size + 1
     k_size = 3 if k_size < 3 else k_size

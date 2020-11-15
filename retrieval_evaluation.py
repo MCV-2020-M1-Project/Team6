@@ -31,7 +31,7 @@ def main(queryset_name, descriptor, measure, k, similarity, background, bbox, oc
     Main function
     '''
     #Read descriptors of the museum db from .pkl
-    path = ['pkl_data','bd_descriptors.pkl'] #for making the path system independent
+    path = ['pkl_data', 'bd_descriptors.pkl'] #for making the path system independent
     db_descript_list = []
     with open(os.path.join(*path), 'rb') as dbfile:
         db_descript_list = pkl.load(dbfile)
@@ -48,11 +48,13 @@ def main(queryset_name, descriptor, measure, k, similarity, background, bbox, oc
 
         # if i != 7:
         #     continue
-        # # end ignore -1
-        # if i in {0, 2, 3, 4, 9, 12, 14, 18, 20, 21, 27}: 
+        # # ignore -1
+        # # if i in {0, 2, 3, 4, 9, 12, 14, 18, 20, 21, 27}: # w4
+        # if i in {0, 6, 11, 12, 16, 17, 20, 23,24,26}: # w5
         #     continue
         # # end ignore -1
 
+        print(f'Reading image {i}...')
         path = ['..','datasets', queryset_name, '{:05d}'.format(i)+'.jpg']
         img = cv2.imread(os.path.join(*path), cv2.IMREAD_COLOR)
         if img is None:
@@ -65,6 +67,7 @@ def main(queryset_name, descriptor, measure, k, similarity, background, bbox, oc
             # Rotated masks
             # masks = bg.method_canny(img)
             # _, masks = bg.hsv_thresh_method(img.copy(), 2)
+            print('Getting background...')
             masks = bg.method_canny_multiple_paintings_rot(img.copy())[1]
             # print(masks)
             masks = sorted(masks, key = lambda x: (x[2][1], x[2][0]))
@@ -78,7 +81,6 @@ def main(queryset_name, descriptor, measure, k, similarity, background, bbox, oc
                 # print(f'Angle: {angle}\n Rect:{rect}')
                 # Rotate image 
                 rot_im = bg.rotate_image(img.copy(), angle, centroid=centroid)
-                mask = mask[1] # so that mask i sthe rect again
 
                 rect = tuple([abs(r) for r in rect])
                 if abs(rect[1] - rect[3]) < 50 or abs(rect[0] - rect[2]) < 50: # wrong crop
@@ -105,6 +107,8 @@ def main(queryset_name, descriptor, measure, k, similarity, background, bbox, oc
         # Keypoint stuff
 
         if bbox:
+            print('Getting bounding boxes...')
+
             box_masks = []
 
             for painting in paintings:
@@ -129,7 +133,8 @@ def main(queryset_name, descriptor, measure, k, similarity, background, bbox, oc
                 # cv2.imshow('Pain', cv2.resize(p, (500, 500*p.shape[0]//p.shape[1])))
                 # cv2.waitKey(0)
                 a = np.where(mask > 0)
-                mask = 1 - mask
+
+
                 pts = [(i, j) for i,j in zip(*a)]
 
                 if len(pts) == 0 or not ocr:
@@ -142,6 +147,7 @@ def main(queryset_name, descriptor, measure, k, similarity, background, bbox, oc
 
                 # masked_img = cv2.bitwise_and(p, p, mask=mask)
                 # masked_img = p[bb > 0]
+                print('Getting text...')
                 text = txt.get_text(masked_img.copy())
                 # print(text)
                 # cv2.waitKey(0)
@@ -169,13 +175,12 @@ def main(queryset_name, descriptor, measure, k, similarity, background, bbox, oc
             # get a dic with the descriptors for the n pictures per painting
             qs_descript_list.append([desc.get_descriptors(painting.copy(), None) \
              for painting in paintings])
-
-
-
+        print('='*20)
     predicted = []
+    print('Getting predictions...')
     for query_descript_dic in qs_descript_list:
         predicted.append([cbir.get_top_k_multi(p, \
-                        db_descript_list,  [descriptor], [1], \
+                        db_descript_list, ['hog', 'hsv_multiresolution'], [0.5, 0.5], \
                         measure, similarity, k, {'author': 0.3}, desc_check=desc_check) \
                         for p in query_descript_dic])
     # print(predicted)
@@ -189,7 +194,7 @@ def main(queryset_name, descriptor, measure, k, similarity, background, bbox, oc
 
     #Read groundtruth from .pkl
     actual = [] #just a list of all images from the query folder - not ordered
-    path = ['..','datasets', queryset_name, 'gt_corresps.pkl']
+    path = ['..','datasets', queryset_name, 'gt_corresps_goood.pkl']
     with open(os.path.join(*path), 'rb') as gtfile:
         actual = pkl.load(gtfile)
 
@@ -220,12 +225,13 @@ def main(queryset_name, descriptor, measure, k, similarity, background, bbox, oc
         else:
             new_actual.append(images)
 
+    print('Getting evaluation...')
     map_k = metrics.kdd_mapk(new_actual,new_predicted,k)
 
-    print('actual:', actual)
-    # print('new actual:', new_actual)
-    print('predicted:', predicted)
-    # print('new predicted:', new_predicted)
+    # print('actual:', actual)
+    print('new actual:', new_actual)
+    # print('predicted:', predicted)
+    print('new predicted:', new_predicted)
     print(f'MAP@{k} Result = {map_k}')
 
     '''

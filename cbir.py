@@ -13,8 +13,11 @@ from libs import distance_metrics as dists
 def get_top_k_multi(query, db_descriptor_list, descriptor_method_list, weights, measure_name, similarity, k, hier_desc_dict=None, desc_check=False):
 
     if desc_check and desc.painting_in_db(query, db_descriptor_list): #TODO: Before or after text???
+        print('Painting not in DB..')
         return [-1]
 
+    auth_name = query['author']
+    print(f'Filtering by text ({auth_name})...')
     shorter_list = []
     # Filter out by hierarchy
     if hier_desc_dict is not None:
@@ -28,9 +31,21 @@ def get_top_k_multi(query, db_descriptor_list, descriptor_method_list, weights, 
     if len(shorter_list) < 1:
         shorter_list = db_descriptor_list
 
+    print(f'{len(shorter_list)} images left...')
+
+    shorterest_list = []
+    print('Fltering by keypoints...')
+    # Filter by keypoint
+    for d in shorter_list:
+        if dists.get_bf_matching(query['orb'], d['orb']) >= 3:
+            shorterest_list.append(d)
+
+    if len(shorterest_list) < 1:
+        shorterest_list = shorter_list
+    print(f'{len(shorter_list)} images left...')
 
     # get top k
-    return get_db_top_k(query, shorter_list, descriptor_method_list, weights, measure_name, similarity, k)
+    return get_db_top_k(query, shorterest_list, descriptor_method_list, weights, measure_name, similarity, k)
 
 
 def get_db_top_k(query_descriptor, db_descriptor_list, descriptor_method_list, weight_list, measure, similarity, k=3):

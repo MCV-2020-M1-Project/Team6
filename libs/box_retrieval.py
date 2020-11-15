@@ -167,10 +167,10 @@ def get_boxes(im):
 
     box_mask = cv.resize(box_mask, original_size[::-1])
     
-    a = np.where(box_mask > 0)
-    pts = [(i, j) for i,j in zip(*a)]
-    if len(pts) > 0:
-        box_mask = fit_box(pts, original_image)
+    # a = np.where(box_mask > 0)
+    # pts = [(i, j) for i,j in zip(*a)]
+    # if len(pts) > 0:
+    #     box_mask = fit_box(pts, original_image)
   
 
     return box_mask

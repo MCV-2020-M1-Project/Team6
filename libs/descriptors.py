@@ -33,12 +33,12 @@ def painting_in_db(des1, dataset, mask=None, method=1):
         good = [m for m in matches if m.distance < 35]
         matches_calc = [m.distance for m in matches[:index_compare]]
         var = np.var(np.array(matches_calc))
-        print("id=",id,"len good = ", len(good) , "var=", var)
+#        print("id=",id,"len good = ", len(good) , "var=", var)
         # print('var=', var)
         # if len(good) > 4: return False
         if len(good)>biggest_match: biggest_match=len(good)
         if len(good) > 1:
-            if var < 20:
+            if var < 30:
                 return False
 
     return True
@@ -169,6 +169,7 @@ def get_orb_desc(img, mask=None):
         # mask = 1 - mask
         mask = cv2.resize(mask,(512,512))
     img = cv2.resize(img,(512,512))
+
     # Initiate ORB detector
     orb = cv2.ORB_create(scaleFactor=1.1,fastThreshold=10,WTA_K=2)
     # find the keypoints with ORB
