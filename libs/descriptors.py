@@ -30,7 +30,7 @@ def painting_in_db(des1, dataset, mask=None, method=1):
         matches = bf.match(des1, des2)
         matches = sorted(matches, key=lambda x: x.distance)
         index_compare = len(matches)//10
-        good = [m for m in matches if m.distance < 35]
+        good = [m for m in matches if m.distance < 40]
         matches_calc = [m.distance for m in matches[:index_compare]]
         var = np.var(np.array(matches_calc))
         # print("id=",id,"len good = ", len(good) , "var=", var)
@@ -610,8 +610,8 @@ def get_descriptors(img, mask=None):
     # descript_dic['hs_multi_hist'] = get_hs_multi_hist(tiles, mask_tiled)
     # descript_dic['hs_multiresolution'] = get_hs_multiresolution_hist(img, mask)
     # descript_dic['bgr_multiresolution'] = get_multiresolution_hist(img, mask)
-    # descript_dic['hsv_multiresolution'] = get_multiresolution_hist(cv2.cvtColor(img, cv2.COLOR_BGR2HSV), mask)
-    # descript_dic['hog'] = get_hog(img)
+    descript_dic['hsv_multiresolution'] = get_multiresolution_hist(cv2.cvtColor(img, cv2.COLOR_BGR2HSV), mask)
+    descript_dic['hog'] = get_hog(img)
     # lbp_im = get_lbp(cv2.cvtColor(img, cv2.COLOR_BGR2GRAY))
     # descript_dic['lbp_multiresolution'] = get_gray_multiresolution_hist(lbp_im, mask)
     # descript_dic['lbp_hist'] = get_gray_hist(lbp_im, mask)
