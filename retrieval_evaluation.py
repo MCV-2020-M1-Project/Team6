@@ -62,6 +62,7 @@ def main(queryset_name, descriptor, measure, k, similarity, background, bbox, oc
         paintings = []
 
         if background:
+            # Rotated masks
             # masks = bg.method_canny(img)
             # _, masks = bg.hsv_thresh_method(img.copy(), 2)
             masks = bg.method_canny_multiple_paintings_rot(img.copy())[1]
@@ -89,6 +90,7 @@ def main(queryset_name, descriptor, measure, k, similarity, background, bbox, oc
                 # cv2.imshow('Cropped', cv2.resize(crop, (500, 500*crop.shape[0]//crop.shape[1])))
                 # cv2.waitKey(0)
                 paintings.append(crop)
+
         else:
             paintings = [img]
 
@@ -127,6 +129,7 @@ def main(queryset_name, descriptor, measure, k, similarity, background, bbox, oc
                 # cv2.imshow('Pain', cv2.resize(p, (500, 500*p.shape[0]//p.shape[1])))
                 # cv2.waitKey(0)
                 a = np.where(mask > 0)
+                mask = 1 - mask
                 pts = [(i, j) for i,j in zip(*a)]
 
                 if len(pts) == 0 or not ocr:
@@ -172,7 +175,7 @@ def main(queryset_name, descriptor, measure, k, similarity, background, bbox, oc
     predicted = []
     for query_descript_dic in qs_descript_list:
         predicted.append([cbir.get_top_k_multi(p, \
-                        db_descript_list,  ['hog', 'hsv_multiresolution'], [0.5, 0.5], \
+                        db_descript_list,  [descriptor], [1], \
                         measure, similarity, k, {'author': 0.3}, desc_check=desc_check) \
                         for p in query_descript_dic])
     # print(predicted)

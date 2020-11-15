@@ -12,7 +12,7 @@ from libs import distance_metrics as dists
 
 def get_top_k_multi(query, db_descriptor_list, descriptor_method_list, weights, measure_name, similarity, k, hier_desc_dict=None, desc_check=False):
 
-    if desc_check and desc.painting_in_db(query, db_descriptor_list, method=1): #TODO: Before or after text???
+    if desc_check and desc.painting_in_db(query, db_descriptor_list): #TODO: Before or after text???
         return [-1]
 
     shorter_list = []
