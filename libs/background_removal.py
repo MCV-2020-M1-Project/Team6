@@ -436,7 +436,6 @@ def method_canny_multiple_paintings_rot(image):
                 # rot_edges = draw_rrect(rot_edges.copy(), rotate_rect(hyp_box.copy(), hyp_angle))
                 # cv.imshow('canny sec', cv.resize(rot_edges, (500, 500*rot_edges.shape[0]//rot_edges.shape[1])))
                 # cv.waitKey(0)
-                
                 list_of_painting_coordinates.append([hyp_angle, hyp_centroid, rect4_to_rect2(rotate_rect(hyp_box, hyp_angle)), hyp_pkl])
             else:
                 break
