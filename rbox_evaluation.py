@@ -186,15 +186,25 @@ def debug(gt_frames):
 def check_point_order(box):
     print(box)
     print(box.shape)
-    x = np.max(box[:,0])
-    y = np.max(box[:,1])
-    ecran = np.zeros((x,y, 3))
-
+    x = np.max(box[:,0])+100
+    y = np.max(box[:,1])+100
+    ecran = np.zeros((y, x, 3))
+    print(ecran.shape)
     for i, p in enumerate(box):
-        ecran = cv2.putText(ecran, str(i), tuple(p), cv2.FONT_HERSHEY_COMPLEX, 1, (0,0,255))
+        ecran = cv2.putText(ecran, str(i), tuple(p), cv2.FONT_HERSHEY_COMPLEX, 4, (0,0,255))
     
-    cv2.imshow('Points', ecran)
+    cv2.imshow('Points', cv2.resize(ecran, (500, 500*ecran.shape[0]//ecran.shape[1])))
     cv2.waitKey(0)
+
+def get_rrect_props(rrect):
+    angle = rrect[0]
+    vertex = rrect[1]
+
+    # RotatedRect rotated_rect = minAreaRect(contour);
+    # float blob_angle_deg = rotated_rect.angle;
+    # if (rotated_rect.size.width < rotated_rect.size.height) {
+    # blob_angle_deg = 90 + blob_angle_deg;
+    # }
 
 def main():
     '''
@@ -213,8 +223,8 @@ def main():
     n = 0
     for gt_image, hyp_img in zip(gt_frames, hyp_frames):
         for gt_painting, hyp_painting in zip(gt_image, hyp_img):
-            check_point_order(hyp_painting[1])
-            quit()
+            print('gt angle', gt_painting[0])
+            print('hyp angle', hyp_painting[0], '\n')
             sum_iou += rbox_iou(gt_painting, hyp_painting)
             sum_ae += angular_error_boxes(gt_painting[1], hyp_painting[1])
             n += 1

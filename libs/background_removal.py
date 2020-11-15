@@ -359,13 +359,26 @@ def method_canny_multiple_paintings_rot(image):
     # TODO: min(Aw,Ah) > max(Aw,Ah)/5
 
     first_rect = cv.minAreaRect(first_contour)
+    save_angle = -first_rect[2] if abs(first_rect[2]) <= 45 else 180 + first_rect[2]
+    save_angle = save_angle if save_angle <= 45 else save_angle + 90
+    save_angle = int(save_angle) % 180
+
+
+
     first_box = cv.boxPoints(first_rect)
     first_box = np.int0(first_box) # The four corners
     first_angle = first_rect[2] if abs(first_rect[2]) <= 45 else 90 + first_rect[2]
     first_centroid = tuple(np.mean(np.array(first_box), 0))
 
+    '''
+    # lower points
+    lower_points = sorted(first_box, key=lambda x: x[1], reverse=True)[:2]
+    rho1, theta1 = gu_line_polar_params_from_points(lower_points[0], lower_points[1])
+
+    '''
+
     #TODO Check angles and point order is correct
-    first_pkl = [first_angle, first_box]
+    first_pkl = [save_angle, first_box]
 
 
     # Display stuff
@@ -401,7 +414,11 @@ def method_canny_multiple_paintings_rot(image):
         hyp_angle = hyp_rect[2] if abs(hyp_rect[2]) <= 45 else 90 + hyp_rect[2]
         hyp_centroid = tuple(np.mean(np.array(hyp_box), 0))
 
-        hyp_pkl = [hyp_angle, hyp_box]
+        save_angle = -hyp_rect[2] if hyp_rect[1][0] > hyp_rect[1][1] else hyp_rect[2] + 180
+        save_angle = save_angle if save_angle <= 45 else save_angle + 90
+        save_angle = int(save_angle) % 180
+
+        hyp_pkl = [save_angle, hyp_box]
         # if inter[0] == cv.INTERSECT_NONE:
         #     print('No intersection')
         # elif inter[0] == cv.INTERSECT_PARTIAL:
