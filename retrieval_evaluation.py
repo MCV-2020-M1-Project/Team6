@@ -183,13 +183,6 @@ def main(queryset_name, descriptor, measure, k, similarity, background, bbox, oc
     # ['hog', 'hsv_multiresolution', 'DCT-16-64'], [0.5, 0.5, 0],
     # print(predicted)
 
-    # For generating submission pkl
-    # with open('../dlcv06/m1-results/week4/QST1/method1/result.pkl', 'wb') as f:
-    #     print('Pickles...')
-    #     pkl.dump(predicted, f)
-    #     print('...gonna pick')
-    # quit()
-
     #Read groundtruth from .pkl
     actual = [] #just a list of all images from the query folder - not ordered
     path = ['..','datasets', queryset_name, 'gt_corresps.pkl']

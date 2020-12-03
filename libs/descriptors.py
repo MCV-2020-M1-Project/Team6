@@ -3,7 +3,7 @@ import numpy as np
 from skimage.feature import local_binary_pattern, hog,daisy
 import pytesseract
 
-def painting_in_db(des1, dataset, mask=None, method=1):
+def painting_in_db(des1, dataset, mask=None):
     '''
     Method 1, 2 and 3 > Get only distance, differences are:
         - 1: Thresh is 21
@@ -42,105 +42,6 @@ def painting_in_db(des1, dataset, mask=None, method=1):
                 return False
 
     return True
-
-def painting_in_db_old(des1, dataset, mask=None, method=1):
-    '''
-    Method 1, 2 and 3 > Get only distance, differences are:
-        - 1: Thresh is 21
-        - 2: Thresh is 35 
-        - 3: Thresh us 35 and singles point matches are ignored
-    Method 4 > Get 2 nearest matches and compared them. The first one must be significantly better than the second for it to be valid.
-    Then, matches with 3 or less points are ignored
-    '''
-    total_sum = 0
-
-    des1 = des1['orb']
-
-    # Create matcher
-    if method == 4:
-        bf = cv2.BFMatcher()
-    else:
-        bf = cv2.BFMatcher(cv2.NORM_HAMMING, crossCheck=True)
-        # bf = cv2.BFMatcher(cv2.NORM_L1, crossCheck=True)
-
-    # Iterate over the ds
-    for ds_im in dataset:
-        if total_sum > 0: 
-            return True
-
-        des2 = ds_im['orb']
-        if des2 is None:
-            continue
-        # print(len(des1), len(des2))
-        good = []
-        if method == 4:
-            matches = bf.knnMatch(des1,des2,k=2)
-            for m,n in matches:
-                if m.distance < 0.6*n.distance:
-                    good.append([m])
-            total_sum += len(good) if len(good) > 3 else 0
-        else:
-            # Match descriptors.
-            matches = bf.match(des1, des2)
-
-            if method == 1:
-                good = [m for m in matches if m.distance < 21]
-                total_sum += len(good) 
-            else:
-                good = [m for m in matches if m.distance < 35]
-                if method == 3:
-                    total_sum += len(good) if len(good) > 4 else 0
-                else:
-                    total_sum += len(good)
-    return False
-
-
-def painting_in_db2(des1, dataset, mask=None, method=1):
-    '''
-    Method 1, 2 and 3 > Get only distance, differences are:
-        - 1: Thresh is 21
-        - 2: Thresh is 35 
-        - 3: Thresh us 35 and singles point matches are ignored
-    Method 4 > Get 2 nearest matches and compared them. The first one must be significantly better than the second for it to be valid.
-    Then, matches with 3 or less points are ignored
-    '''
-    total_sum = 0
-
-    des1_sift = des1['sift']
-    des1_orb = des1['orb']
-
-    bf_orb = cv2.BFMatcher(cv2.NORM_HAMMING, crossCheck=True)
-    bf_sift = cv2.BFMatcher()
-
-
-    # Iterate over the ds
-    for ds_im in dataset:
-        if total_sum > 0: 
-            return True
-
-        des2_sift = ds_im['sift']
-        des2_orb = ds_im['orb']
-        if des2_sift is None or des2_orb is None:
-            continue
-        # print(len(des1), len(des2))
-        good = []
-
-        # SIFT
-        matches_sift = bf_sift.knnMatch(des1_sift,des2_sift,k=2)
-        for m,n in matches_sift:
-            if m.distance < 0.3*n.distance:
-                good.append([m])
-        total_sum += len(good) if len(good) > 0 else 0
-
-
-        # ORB
-        matches_orb = bf_orb.match(des1_orb, des2_orb)
-
-        good = [m for m in matches_orb if m.distance < 21]
-        total_sum += len(good) if len(good) > 0 else 0
-
-    return False
-
 
 def get_daisy_desc(img):
     img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
